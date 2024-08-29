@@ -77,7 +77,7 @@ template <> struct random_object<std::string> : public random_object_base {
     /**
      * @brief return random string, with elements in [_l, _u] and size in [_ll, _ul)
      */
-    auto rand(size_t _ll, size_t _ul, bound_type _l = 'a', bound_type _u = 'z') const -> obj_type {
+    auto rand(size_t _ll = 3, size_t _ul = 4, bound_type _l = 'a', bound_type _u = 'z') const -> obj_type {
         assert(_l < _u);
         size_t _length = _ulro.rand(_ll, _ul);
         std::string _str(_length, 0);
