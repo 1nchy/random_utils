@@ -47,8 +47,6 @@ struct virtual_callable {
 
 template <typename _Container, typename _R, typename... _Args> struct callable : public callable_impl<0, _Args...> {
     using base = callable_impl<0, _Args...>;
-    // using aaa = callable_impl<>;
-    // using bbb = std::tuple<>;
     using container_type = _Container;
     using method_type = _R(container_type::*)(_Args...);
     callable(container_type* _c, method_type _t) : _container(_c), _call(_t) {}
