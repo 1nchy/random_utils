@@ -4,6 +4,21 @@
 
 定义 [container_wrapper](../include/container_wrapper.hpp) 类的初衷，是将待测试的容器类进行包装，通过注册字符串-成员函数键值对，完成对目标成员函数的自动调用，其入参则由 `random_object` 随机生成。
 
+## Usage
+
+~~~cpp
+container::wrapper<std::set<char>> _wrapper;
+_wrapper.enroll("clear", &std::set::clear);
+_wrapper.enroll("size", &std::set::size);
+_wrapper.enroll("insert", &std::set::insert);
+_wrapper.enroll("erase", &std::set::erase);
+_wrapper.enroll("count", &std::set::count);
+_wrapper.random_call("insert"); // insert a random char
+_wrapper.random_call("clear");
+const auto _l = _wrapper.call<size_t>("size"); // must match
+const auto _la = _wrapper.call<size_t>("count", 'a'); // must match
+~~~
+
 ## Details
 
 - 抽象类定义
