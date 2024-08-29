@@ -102,7 +102,13 @@ template <> struct random_object<void> : public random_object_base {
      */
     auto rand() const -> object_type {
         if (_density.empty()) return 0;
-        return *std::lower_bound(_density.cbegin(), _density.cend(), _btro.rand(0, _density.back()));
+        return std::lower_bound(_density.cbegin(), _density.cend(), _btro.rand(0, _density.back())) - _density.cbegin();
+    }
+    template <typename _Iter> void update_density(_Iter _b, _Iter _e, auto _getter = [](_Iter _i) -> bound_type { return *_i; }) {
+        _density.clear();
+        for (_Iter _i = _b; _i != _e; ++_i) {
+            _density.push_back(_getter(_i) + ((_density.empty() ? 0 : _density.back())));
+        }
     }
 private:
     template <typename... _Bounds> void _M_init_density(bound_type _b, _Bounds&&... _bs) {
