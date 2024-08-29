@@ -1,14 +1,13 @@
 #ifndef _ICY_CONTAINER_WRAPPER_HPP_
 #define _ICY_CONTAINER_WRAPPER_HPP_
 
+#include <cstddef>
 #include <string>
 #include <functional>
 #include <unordered_map>
 #include <memory>
-#include <cstdio>
 #include <iostream>
-#include <sstream>
-// #include <format>
+#include <stdexcept>
 
 #include "random_object.hpp"
 
@@ -55,8 +54,8 @@ template <typename _Container, typename _R, typename... _Args> struct callable :
         // std::cout << base::_tuple << std::endl;
         invoke_tuple(base::_tuple);
     }
-    void operator()(_Args&&... _args) {
-        (_container->*_call)(std::forward<_Args>(_args)...);
+    _R invoke_with_result(_Args&&... _args) {
+        return (_container->*_call)(std::forward<_Args>(_args)...);
     }
 private:
     template <typename _Tuple> void invoke_tuple(const _Tuple& _tuple) {
@@ -111,8 +110,8 @@ public:
     template <typename _R, typename... _Args> auto
     enroll(const std::string&, _R(_Tp::*)(_Args...)) -> void;
     auto random_call(const std::string&) -> void;
-    template <typename... _Args> auto
-    call(const std::string&, _Args&&... _args) -> void;
+    template <typename _R, typename... _Args> auto
+    call(const std::string&, _Args&&... _args) -> _R;
 private:
     container_type _container;
     std::unordered_map<std::string, std::shared_ptr<virtual_callable>> _enrollment;
@@ -128,6 +127,14 @@ enroll(const std::string& _k, _R(_Tp::*_f)(_Args...)) -> void {
 template <typename _Tp> auto wrapper<_Tp>::
 random_call(const std::string& _k) -> void {
     _enrollment.at(_k)->operator()();
+};
+template <typename _Tp> template <typename _R, typename... _Args> auto wrapper<_Tp>::
+call(const std::string& _k, _Args&&... _args) -> _R {
+    auto* const _callable_ptr = dynamic_cast<callable<container_type, _R, _Args...>*>(_enrollment.at(_k).get());
+    if (_callable_ptr == nullptr) {
+        throw std::invalid_argument("_R or sizeof...(_Args)");
+    }
+    return _callable_ptr->invoke_with_result(std::forward<_Args>(_args)...);
 };
 
 }
