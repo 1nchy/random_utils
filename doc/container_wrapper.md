@@ -2,7 +2,7 @@
 
 ## Introduction
 
-定义 [container_wrapper](../include/container_wrapper.hpp) 类的初衷，是将待测试的容器类进行包装，通过注册字符串-成员函数键值对，完成对目标成员函数的自动调用。
+定义 [container_wrapper](../include/container_wrapper.hpp) 类的初衷，是将待测试的容器类进行包装，通过注册字符串-成员函数键值对，完成对目标成员函数的自动调用，其入参则由 `random_object` 随机生成。
 
 ## Details
 
