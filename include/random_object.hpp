@@ -3,10 +3,10 @@
 
 #include <cstddef>
 #include <cassert>
-#include <array>
 #include <string>
+#include <vector>
 #include <type_traits>
-#include <initializer_list>
+#include <algorithm>
 
 namespace icy {
 
@@ -93,37 +93,26 @@ private:
 template <> struct random_object<void> : public random_object_base {
     using object_type = size_t;
     using bound_type = double;
+    template <typename... _Bounds> random_object(_Bounds&&... _bs) {
+        _density.clear();
+        _M_init_density(std::forward<_Bounds>(_bs)...);
+    }
     /**
-     * @brief return random unsigned for a given probability distribution
+     * @brief return random unsigned for probability distribution given in constructor
      */
-    auto rand(std::initializer_list<bound_type> _il) -> object_type {
-        object_type _ret = 0ul;
-        bound_type _sum = 0;
-        bound_type _r = _btro.rand(0, _s_percentage_base);
-        for (auto _it = _il.begin(); _it != _il.end(); ++_it, ++_ret) {
-            _sum += (*_it * _s_percentage_base);
-            if (_sum > _r) {
-                return _ret;
-            }
-        }
-        return _ret;
-    };
-    /**
-     * @brief return random unsigned for a given probability distribution
-     */
-    template <object_type _N> auto rand(const std::array<bound_type, _N>& _a) -> object_type {
-        bound_type _sum = 0;
-        bound_type _r = _btro.rand(0, _s_percentage_base);
-        for (object_type _i = 0ul; _i != _N; ++_i) {
-            _sum += (_a[_i] * _s_percentage_base);
-            if (_sum > _r) {
-                return _i;
-            }
-        }
-        return _N;
-    };
+    auto rand() const -> object_type {
+        if (_density.empty()) return 0;
+        return *std::lower_bound(_density.cbegin(), _density.cend(), _btro.rand(0, _density.back()));
+    }
+private:
+    template <typename... _Bounds> void _M_init_density(bound_type _b, _Bounds&&... _bs) {
+        _density.push_back(_b + (_density.empty() ? 0 : _density.back()));
+        _M_init_density(std::forward<_Bounds>(_bs)...);
+    }
+    void _M_init_density() {}
 private:
     random_object<bound_type> _btro;
+    std::vector<bound_type> _density; // probability density
 };
 
 
