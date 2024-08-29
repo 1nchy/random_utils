@@ -108,24 +108,29 @@ template <typename _Tp> class wrapper {
     using container_type = _Tp;
 public:
     template <typename _R, typename... _Args> auto
-    enroll(const std::string&, _R(_Tp::*)(_Args...)) -> void;
+    enroll(const std::string&, _R(_Tp::*)(_Args...), double _prob = 1.0) -> void;
     auto random_call(const std::string&) -> void;
     template <typename _R, typename... _Args> auto
     call(const std::string&, _Args&&... _args) -> _R;
+    void run();
+private:
+    // const std::string& rand_method_name() const;
 private:
     container_type _container;
     std::unordered_map<std::string, std::shared_ptr<virtual_callable>> _enrollment;
+    std::vector<std::pair<const double, const std::string>> _dist; // the probability distribution of methods
+    random_object<void> _vro;
 };
 
 
 
 template <typename _Tp> template <typename _R, typename... _Args> auto wrapper<_Tp>::
-enroll(const std::string& _k, _R(_Tp::*_f)(_Args...)) -> void {
+enroll(const std::string& _k, _R(_Tp::*_f)(_Args...), double _prob) -> void {
     auto _ptr = std::make_shared<callable<container_type, _R, _Args...>>(&_container, _f);
     _enrollment[_k] = _ptr;
+    _dist.emplace_back(_prob, _k);
 };
-template <typename _Tp> auto wrapper<_Tp>::
-random_call(const std::string& _k) -> void {
+template <typename _Tp> auto wrapper<_Tp>::random_call(const std::string& _k) -> void {
     _enrollment.at(_k)->operator()();
 };
 template <typename _Tp> template <typename _R, typename... _Args> auto wrapper<_Tp>::
@@ -136,6 +141,15 @@ call(const std::string& _k, _Args&&... _args) -> _R {
     }
     return _callable_ptr->invoke_with_result(std::forward<_Args>(_args)...);
 };
+template <typename _Tp> auto wrapper<_Tp>::run() -> void {
+    _vro.update_density(_dist.cbegin(), _dist.cend(), [](decltype(_dist)::const_iterator _i) {
+        return _i->first;
+    });
+    
+};
+// template <typename _Tp> auto wrapper<_Tp>::rand_method_name() const -> const std::string& {
+//     return ;
+// };
 
 }
 
