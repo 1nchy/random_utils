@@ -59,7 +59,7 @@ template <typename _Container, typename _R, typename... _Args> struct callable :
     using base = callable_impl<0, _Args...>;
     using container_type = _Container;
     using method_type = _R(container_type::*)(_Args...);
-    callable(container_type* _c, method_type _t) : _container(_c), _call(_t) {}
+    callable(container_type* _c, method_type _p) : _container(_c), _call(_p) {}
     void operator()() override {
         base::operator()();
         // std::cout << base::_tuple << std::endl;
@@ -82,7 +82,7 @@ private:
 template <typename _Container, typename _R> struct callable<_Container, _R> : public virtual_callable {
     using container_type = _Container;
     using method_type = _R(container_type::*)();
-    callable(container_type* _c, method_type _t) : _container(_c), _call(_t) {}
+    callable(container_type* _c, method_type _p) : _container(_c), _call(_p) {}
     void operator()() override {
         (_container->*_call)();
     }
@@ -115,16 +115,50 @@ private:
 };
 
 
+/**
+ * @brief container and method wrapper
+ * @tparam _Tp container type
+ */
 template <typename _Tp> class wrapper {
     using container_type = _Tp;
-    enum { _cycle_length = 1000000ul };
+    enum { _operation_n = 1000000ul };
 public:
+    /**
+     * @brief enroll string key, method pointer and probability
+     * @tparam _R return type of the method
+     * @tparam _Args arguments type of the method
+     * @param _k string key
+     * @param _p method pointer
+     * @param _weight the weight of method invocation (default 1.0)
+     */
     template <typename _R, typename... _Args> auto
-    enroll(const std::string&, _R(_Tp::*)(_Args...), double _prob = 1.0) -> void;
-    auto random_call(const std::string&) -> void;
+    enroll(const std::string& _k, _R(_Tp::*_p)(_Args...), double _weight = 1.0) -> void;
+    /**
+     * @brief call an enrolled method with arguments generated randomly
+     * @param _k string key of the method
+     */
+    auto call_with_random_args(const std::string& _k) -> void;
+    /**
+     * @brief call an enrolled method
+     * @tparam _R return type of the specific method
+     * @tparam _Args arguments type of the specific method
+     * @param _k string key
+     * @param _args arguments of the method
+     * @return the result of the method
+     * @throw std::invalid_argument
+     */
     template <typename _R, typename... _Args> auto
-    call(const std::string&, _Args&&... _args) -> _R;
-    void run(const size_t _length = _cycle_length);
+    call(const std::string& _k, _Args&&... _args) -> _R;
+    /**
+     * @brief random operation on the container specific times
+     * @param _operation_n the number of operations
+     * @throw std::logic_error
+     */
+    void run(const size_t _n = _operation_n);
+    /**
+     * @brief try to call check method
+     * @return 0 if no method, otherwise the checking result
+     */
     unsigned try_check() const;
 private:
     template <typename _Container, std::enable_if<has_unsigned_check_const<_Container>::value, unsigned>::type = 0u> 
@@ -133,18 +167,18 @@ private:
 private:
     container_type _container;
     std::unordered_map<std::string, std::shared_ptr<virtual_callable>> _enrollment;
-    std::vector<std::pair<const double, const std::string>> _dist; // the probability distribution of methods
+    std::vector<std::pair<const double, const std::string>> _dist; // the weight distribution of methods
     random_object<void> _vro;
 };
 
 
 template <typename _Tp> template <typename _R, typename... _Args> auto wrapper<_Tp>::
-enroll(const std::string& _k, _R(_Tp::*_f)(_Args...), double _prob) -> void {
-    auto _ptr = std::make_shared<callable<container_type, _R, _Args...>>(&_container, _f);
+enroll(const std::string& _k, _R(_Tp::*_p)(_Args...), double _weight) -> void {
+    auto _ptr = std::make_shared<callable<container_type, _R, _Args...>>(&_container, _p);
     _enrollment[_k] = _ptr;
-    _dist.emplace_back(_prob, _k);
+    _dist.emplace_back(_weight, _k);
 };
-template <typename _Tp> auto wrapper<_Tp>::random_call(const std::string& _k) -> void {
+template <typename _Tp> auto wrapper<_Tp>::call_with_random_args(const std::string& _k) -> void {
     _enrollment.at(_k)->operator()();
 };
 template <typename _Tp> template <typename _R, typename... _Args> auto wrapper<_Tp>::
@@ -155,13 +189,13 @@ call(const std::string& _k, _Args&&... _args) -> _R {
     }
     return _callable_ptr->invoke_with_result(std::forward<_Args>(_args)...);
 };
-template <typename _Tp> auto wrapper<_Tp>::run(const size_t _length) -> void {
+template <typename _Tp> auto wrapper<_Tp>::run(const size_t _n) -> void {
     _vro.update_density(_dist.cbegin(), _dist.cend(), [](decltype(_dist)::const_iterator _i) {
         return _i->first;
     });
-    for (size_t _i = 0; _i != _length; ++_i) {
+    for (size_t _i = 0; _i != _n; ++_i) {
         const std::string& _k = _dist.at(_vro.rand()).second;
-        random_call(_k);
+        call_with_random_args(_k);
         if (try_check() != 0u) {
             throw std::logic_error("logic error inside the container");
         }
