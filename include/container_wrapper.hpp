@@ -69,11 +69,12 @@ template <typename _Container, typename _R, typename... _Args> struct callable :
         return (_container->*_call)(std::forward<_Args>(_args)...);
     }
 private:
-    template <typename _Tuple> void invoke_tuple(const _Tuple& _tuple) {
+    template <typename _Tuple> void invoke_tuple(_Tuple& _tuple) {
         _M_invoke_tuple(_tuple, std::make_index_sequence<sizeof...(_Args)>{});
     }
-    template <typename _Tuple, size_t... _N> void _M_invoke_tuple(const _Tuple& _tuple, std::index_sequence<_N...>) {
-        (_container->*_call)(std::move(std::get<_N>(_tuple))...);
+    template <typename _Tuple, size_t... _N> void _M_invoke_tuple(_Tuple& _tuple, std::index_sequence<_N...>) {
+        // (_container->*_call)(std::get<_N>(_tuple)...);
+        (_container->*_call)(std::forward<_Args>(std::get<_N>(_tuple))...);
     }
 private:
     container_type* const _container;
@@ -98,20 +99,20 @@ template <size_t _Index, typename _This, typename... _Rest> struct callable_impl
         base::operator()();
         _tuple = std::tuple_cat(std::make_tuple(_ro.rand()), base::_tuple);
     }
-protected:
-    std::tuple<_This, _Rest...> _tuple;
+    using value_type = std::decay<typename std::remove_reference<_This>::type>::type;
+    typename std::__tuple_cat_result<std::tuple<value_type>, decltype(base::_tuple)>::__type _tuple;
 private:
-    random_object<_This> _ro;
+    random_object<value_type> _ro;
 };
 template <size_t _Index, typename _This> struct callable_impl<_Index, _This> : public virtual_callable {
     ~callable_impl() override = default;
     void operator()() override {
         _tuple = std::make_tuple(_ro.rand());
     }
-protected:
-    std::tuple<_This> _tuple;
+    using value_type = std::decay<typename std::remove_reference<_This>::type>::type;
+    std::tuple<value_type> _tuple;
 private:
-    random_object<_This> _ro;
+    random_object<value_type> _ro;
 };
 
 
