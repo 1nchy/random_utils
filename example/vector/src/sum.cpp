@@ -21,9 +21,9 @@ int sum::sum0() {
     std::cout << "sum()" << std::endl;
     return 0;
 }
-// unsigned sum::check() const {
-//     if (_total > 15) {
-//         return 1l;
-//     }
-//     return 0l;
-// }
+unsigned sum::check() const {
+    if (_total > 15) {
+        return 1l;
+    }
+    return 0l;
+}
