@@ -27,6 +27,17 @@ template <typename _Tuple> struct tuple_print<1, _Tuple> {
         _os << std::get<0>(_t);
     }
 };
+
+template <typename _Container> struct has_unsigned_check_const {
+private:
+    // template <typename _U> static auto _M_check(int)
+    //  -> decltype(std::declval<_U>().check(), std::true_type());
+    template <typename _U, unsigned (_U::*)() const> struct unsigned_check_const {};
+    template <typename _U> static auto _M_check(unsigned_check_const<_U, &_U::check>*) -> std::true_type;
+    template <typename _U> static auto _M_check(...) -> std::false_type;
+public:
+    enum { value = std::is_same<decltype(_M_check<_Container>(0)), std::true_type>::value };
+};
 }
 template <typename... _Ts> std::ostream& operator<<(std::ostream& _os, const std::tuple<_Ts...>& _tuple) {
     _os << '[';
@@ -114,6 +125,11 @@ public:
     template <typename _R, typename... _Args> auto
     call(const std::string&, _Args&&... _args) -> _R;
     void run(const size_t _length = _cycle_length);
+    unsigned try_check() const;
+private:
+    template <typename _Container, std::enable_if<has_unsigned_check_const<_Container>::value, unsigned>::type = 0u> 
+    unsigned _M_check(const _Container* _c) const { return _c->check(); }
+    template <typename _Container> unsigned _M_check(...) const { return 0u; }
 private:
     container_type _container;
     std::unordered_map<std::string, std::shared_ptr<virtual_callable>> _enrollment;
@@ -146,7 +162,13 @@ template <typename _Tp> auto wrapper<_Tp>::run(const size_t _length) -> void {
     for (size_t _i = 0; _i != _length; ++_i) {
         const std::string& _k = _dist.at(_vro.rand()).second;
         random_call(_k);
+        if (try_check() != 0u) {
+            throw std::logic_error("logic error inside the container");
+        }
     }
+};
+template <typename _Tp> auto wrapper<_Tp>::try_check() const -> unsigned {
+    return _M_check<container_type>(std::addressof(_container));
 };
 
 }
