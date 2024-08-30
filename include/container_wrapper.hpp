@@ -196,8 +196,8 @@ template <typename _Tp> auto wrapper<_Tp>::run(const size_t _n) -> void {
     for (size_t _i = 0; _i != _n; ++_i) {
         const std::string& _k = _dist.at(_vro.rand()).second;
         call_with_random_args(_k);
-        if (try_check() != 0u) {
-            throw std::logic_error("logic error inside the container");
+        if (const auto _result = try_check() != 0u) {
+            throw std::logic_error(std::string("logic error inside the container : " + std::to_string(_result)));
         }
     }
 };
