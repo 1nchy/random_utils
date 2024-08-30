@@ -47,7 +47,7 @@ template <typename... _Ts> std::ostream& operator<<(std::ostream& _os, const std
 }
 
 struct virtual_callable;
-template <typename _Container, typename _R, typename... _Args> struct callable;
+template <typename _Container, bool _Const, typename _R, typename... _Args> struct callable;
 template <size_t _Index, typename _This, typename... _Rest> struct callable_impl;
 struct virtual_callable {
     virtual void operator()() = 0;
@@ -55,10 +55,10 @@ struct virtual_callable {
 };
 
 
-template <typename _Container, typename _R, typename... _Args> struct callable : public callable_impl<0, _Args...> {
+template <typename _Container, bool _Const, typename _R, typename... _Args> struct callable : public callable_impl<0, _Args...> {
     using base = callable_impl<0, _Args...>;
     using container_type = _Container;
-    using method_type = _R(container_type::*)(_Args...);
+    using method_type = std::conditional<_Const, _R(container_type::*)(_Args...)const, _R(container_type::*)(_Args...)>::type;
     callable(container_type* _c, method_type _p) : _container(_c), _call(_p) {}
     void operator()() override {
         base::operator()();
@@ -80,12 +80,15 @@ private:
     container_type* const _container;
     const method_type _call;
 };
-template <typename _Container, typename _R> struct callable<_Container, _R> : public virtual_callable {
+template <typename _Container, bool _Const, typename _R> struct callable<_Container, _Const, _R> : public virtual_callable {
     using container_type = _Container;
-    using method_type = _R(container_type::*)();
+    using method_type = std::conditional<_Const, _R(container_type::*)()const, _R(container_type::*)()>::type;
     callable(container_type* _c, method_type _p) : _container(_c), _call(_p) {}
     void operator()() override {
         (_container->*_call)();
+    }
+    _R invoke_with_result() {
+        return (_container->*_call)();
     }
 private:
     container_type* const _container;
@@ -134,6 +137,8 @@ public:
      */
     template <typename _R, typename... _Args> auto
     enroll(const std::string& _k, _R(_Tp::*_p)(_Args...), double _weight = 1.0) -> void;
+    template <typename _R, typename... _Args> auto
+    enroll(const std::string& _k, _R(_Tp::*_p)(_Args...)const, double _weight = 1.0) -> void;
     /**
      * @brief call an enrolled method with arguments generated randomly
      * @param _k string key of the method
@@ -175,7 +180,13 @@ private:
 
 template <typename _Tp> template <typename _R, typename... _Args> auto wrapper<_Tp>::
 enroll(const std::string& _k, _R(_Tp::*_p)(_Args...), double _weight) -> void {
-    auto _ptr = std::make_shared<callable<container_type, _R, _Args...>>(&_container, _p);
+    auto _ptr = std::make_shared<callable<container_type, false, _R, _Args...>>(&_container, _p);
+    _enrollment[_k] = _ptr;
+    _dist.emplace_back(_weight, _k);
+};
+template <typename _Tp> template <typename _R, typename... _Args> auto wrapper<_Tp>::
+enroll(const std::string& _k, _R(_Tp::*_p)(_Args...)const, double _weight) -> void {
+    auto _ptr = std::make_shared<callable<container_type, true, _R, _Args...>>(&_container, _p);
     _enrollment[_k] = _ptr;
     _dist.emplace_back(_weight, _k);
 };
@@ -184,11 +195,15 @@ template <typename _Tp> auto wrapper<_Tp>::call_with_random_args(const std::stri
 };
 template <typename _Tp> template <typename _R, typename... _Args> auto wrapper<_Tp>::
 call(const std::string& _k, _Args&&... _args) -> _R {
-    auto* const _callable_ptr = dynamic_cast<callable<container_type, _R, _Args...>*>(_enrollment.at(_k).get());
-    if (_callable_ptr == nullptr) {
-        throw std::invalid_argument("_R or sizeof...(_Args)");
+    auto* _const_callable_ptr = dynamic_cast<callable<container_type, true, _R, _Args...>*>(_enrollment.at(_k).get());
+    if (_const_callable_ptr != nullptr) {
+        return _const_callable_ptr->invoke_with_result(std::forward<_Args>(_args)...);
     }
-    return _callable_ptr->invoke_with_result(std::forward<_Args>(_args)...);
+    auto* _nonconst_callable_ptr = dynamic_cast<callable<container_type, false, _R, _Args...>*>(_enrollment.at(_k).get());
+    if (_nonconst_callable_ptr != nullptr) {
+        return _nonconst_callable_ptr->invoke_with_result(std::forward<_Args>(_args)...);
+    }
+    throw std::invalid_argument("_R or sizeof...(_Args)");
 };
 template <typename _Tp> auto wrapper<_Tp>::run(const size_t _n) -> void {
     _vro.update_density(_dist.cbegin(), _dist.cend(), [](decltype(_dist)::const_iterator _i) {
