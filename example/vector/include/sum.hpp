@@ -6,6 +6,9 @@ struct sum {
     int sum2(int a, int b);
     int sum1(int a);
     int sum0();
+    // unsigned check() const;
+private:
+    int _total = 0;
 };
 
 #endif // _ICY_CONTAINER_TEST_EXAMPLE_SUM_HPP_
