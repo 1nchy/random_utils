@@ -7,6 +7,8 @@
 #include <unordered_map>
 #include <memory>
 #include <iostream>
+#include <sstream>
+#include <fstream>
 #include <stdexcept>
 
 #include "random_object.hpp"
@@ -56,9 +58,9 @@ public:
 };
 }
 template <typename... _Ts> std::ostream& operator<<(std::ostream& _os, const std::tuple<_Ts...>& _tuple) {
-    _os << '[';
+    _os << '(';
     tuple_print<sizeof...(_Ts), decltype(_tuple)>::print(_os, _tuple);
-    _os << ']';
+    _os << ')';
     return _os;
 }
 
@@ -68,6 +70,7 @@ template <size_t _Index, typename _This, typename... _Rest> struct callable_impl
 struct virtual_callable {
     virtual void operator()() = 0;
     virtual ~virtual_callable() = default;
+    virtual std::string message() const = 0;
 };
 
 
@@ -80,6 +83,11 @@ template <typename _Container, bool _Const, typename _R, typename... _Args> stru
         base::operator()();
         // std::cout << base::_tuple << std::endl;
         invoke_tuple(base::_tuple);
+    }
+    std::string message() const override {
+        std::stringstream _ss;
+        _ss << base::_tuple;
+        return _ss.str();
     }
     _R invoke_with_result(_Args&&... _args) {
         return (_container->*_call)(std::forward<_Args>(_args)...);
@@ -102,6 +110,9 @@ template <typename _Container, bool _Const, typename _R> struct callable<_Contai
     callable(container_type* _c, method_type _p) : _container(_c), _call(_p) {}
     void operator()() override {
         (_container->*_call)();
+    }
+    std::string message() const override {
+        return "";
     }
     _R invoke_with_result() {
         return (_container->*_call)();
@@ -183,11 +194,16 @@ public:
      * @return 0 if no method, otherwise the checking result
      */
     unsigned try_check() const;
+    void log_file(const std::string& _file);
+    void enable_log() { _log_enabled = true; }
+    void disable_log() { _log_enabled = false; }
 private:
     template <typename _Container, std::enable_if<has_unsigned_check_const<_Container>::value, unsigned>::type = 0u> 
     unsigned _M_check(const _Container* _c) const { return _c->check(); }
     template <typename _Container> unsigned _M_check(...) const { return 0u; }
 private:
+    bool _log_enabled = false;
+    std::ofstream _fs;
     container_type _container;
     std::unordered_map<std::string, std::shared_ptr<virtual_callable>> _enrollment;
     std::vector<std::pair<const double, const std::string>> _dist; // the weight distribution of methods
@@ -229,13 +245,20 @@ template <typename _Tp> auto wrapper<_Tp>::run(const size_t _n) -> void {
     for (size_t _i = 0; _i != _n; ++_i) {
         const std::string& _k = _dist.at(_vro.rand()).second;
         call_with_random_args(_k);
+        if (_log_enabled)
+            _fs << _k << _enrollment.at(_k)->message() << std::endl;
         if (const auto _result = try_check() != 0u) {
+            if (_log_enabled)
+                std::cout << _k << _enrollment.at(_k)->message() << std::endl;
             throw std::logic_error(std::string("logic error inside the container : " + std::to_string(_result)));
         }
     }
 };
 template <typename _Tp> auto wrapper<_Tp>::try_check() const -> unsigned {
     return _M_check<container_type>(std::addressof(_container));
+};
+template <typename _Tp> auto wrapper<_Tp>::log_file(const std::string& _file) -> void {
+    _fs = std::ofstream(_file, std::ios_base::out | std::ios_base::trunc);
 };
 
 }
