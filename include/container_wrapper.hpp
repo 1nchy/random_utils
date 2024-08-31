@@ -27,6 +27,22 @@ template <typename _Tuple> struct tuple_print<1, _Tuple> {
         _os << std::get<0>(_t);
     }
 };
+template <typename... _Ts> struct tuple_cat_result;
+template <> struct tuple_cat_result<> {
+    using type = std::tuple<>;
+};
+template <typename... _Ts> struct tuple_cat_result<std::tuple<_Ts...>> {
+    using type = std::tuple<_Ts...>;
+};
+template <typename _Tp, typename... _Rs> struct tuple_cat_result<_Tp, std::tuple<_Rs...>> {
+    using type = std::tuple<_Tp, _Rs...>;
+};
+template <typename... _Ls, typename _Tp> struct tuple_cat_result<std::tuple<_Ls...>, _Tp> {
+    using type = std::tuple<_Ls..., _Tp>;
+};
+template <typename... _Ls, typename... _Rs> struct tuple_cat_result<std::tuple<_Ls...>, std::tuple<_Rs...>> {
+    using type = std::tuple<_Ls..., _Rs...>;
+};
 
 template <typename _Container> struct has_unsigned_check_const {
 private:
@@ -103,7 +119,8 @@ template <size_t _Index, typename _This, typename... _Rest> struct callable_impl
         _tuple = std::tuple_cat(std::make_tuple(_ro.rand()), base::_tuple);
     }
     using value_type = std::decay<typename std::remove_reference<_This>::type>::type;
-    typename std::__tuple_cat_result<std::tuple<value_type>, decltype(base::_tuple)>::__type _tuple;
+    typename tuple_cat_result<value_type, decltype(base::_tuple)>::type _tuple;
+    // typename std::__tuple_cat_result<std::tuple<value_type>, decltype(base::_tuple)>::__type _tuple;
 private:
     random_object<value_type> _ro;
 };
