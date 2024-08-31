@@ -33,7 +33,7 @@ target_include_directories(${PROJECT_NAME}
     PUBLIC ${PROJECT_SOURCE_DIR}/include
 )
 
-set(THIRD_LIB_NAME container_test)
+set(THIRD_LIB_NAME container_wrapper)
 find_library(third_lib_${THIRD_LIB_NAME} ${THIRD_LIB_NAME} ../../lib)
 if (third_lib_${THIRD_LIB_NAME})
     message(STATUS "lib: " ${third_lib_${THIRD_LIB_NAME}})
