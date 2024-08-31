@@ -23,9 +23,13 @@ int main() {
     _w.enroll("cat0", &cat::cat0, 3.0);
     _w.enroll("cat000", &cat::cat000);
     char _c;
-    _w.call<std::string>("cat1", _c);
-    _w.call<std::string>("cat0");
-    _w.call<char>("cat000", _c);
+    // _w.call<std::string>("cat1", _c);
+    // _w.call<std::string>("cat0");
+    // _w.call<char>("cat000", _c);
+    // _w.log_file("main.txt");
+    _w.enable_log();
     _w.run(30);
     return 0;
+
+
 }
