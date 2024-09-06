@@ -247,7 +247,7 @@ template <typename _Tp> auto wrapper<_Tp>::run(const size_t _n) -> void {
         call_with_random_args(_k);
         if (_log_enabled)
             _fs << _k << _enrollment.at(_k)->message() << std::endl;
-        if (const auto _result = try_check() != 0u) {
+        if (const auto _result = try_check()) {
             if (_log_enabled)
                 std::cout << _k << _enrollment.at(_k)->message() << std::endl;
             throw std::logic_error(std::string("logic error inside the container : " + std::to_string(_result)));
