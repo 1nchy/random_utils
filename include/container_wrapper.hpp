@@ -82,6 +82,10 @@ template <typename _Container, bool _Const, typename _R, typename... _Args> stru
     void operator()() override {
         base::operator()();
         // std::cout << base::_tuple << std::endl;
+        /**
+         * @details std::apply(_call, std::tuple_cat(std::forward_as_tuple(*_container), base::_tuple));
+         * std::apply cant handle reference parameter.
+         */
         invoke_tuple(base::_tuple);
     }
     std::string message() const override {
