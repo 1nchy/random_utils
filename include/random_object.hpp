@@ -159,6 +159,91 @@ private:
     random_object<char> _cro;
 };
 
+template <typename _T1, typename _T2> struct random_object<std::pair<_T1, _T2>> : public random_object_base {
+    using obj_type = std::pair<_T1, _T2>;
+    using bound_type = void;
+    template <typename... _Ts1, typename... _Ts2> inline auto
+    rand(std::tuple<_Ts1...>&& _ts1, std::tuple<_Ts2...>&& _ts2) const -> obj_type {
+        return _M_rand(std::move(_ts1), std::make_index_sequence<sizeof...(_Ts1)>{}, std::move(_ts2), std::make_index_sequence<sizeof...(_Ts2)>{});
+    };
+    auto rand() const -> obj_type {
+        return std::make_pair(_ro1.rand(), _ro2.rand());
+    };
+private:
+    template <typename... _Ts1, size_t... _N1, typename... _Ts2, size_t... _N2> auto
+    _M_rand(
+        std::tuple<_Ts1...>&& _ts1, std::index_sequence<_N1...>,
+        std::tuple<_Ts2...>&& _ts2, std::index_sequence<_N2...>
+    ) const -> obj_type {
+        return std::make_pair(
+            _ro1.rand(std::forward<_Ts1>(std::get<_N1>(_ts1))...),
+            _ro2.rand(std::forward<_Ts2>(std::get<_N2>(_ts2))...)
+        );
+    };
+private:
+    random_object<_T1> _ro1;
+    random_object<_T2> _ro2;
+};
+
+namespace {
+
+template <size_t _Index, typename _This, typename... _Rest> struct random_tuple_object_impl;
+
+template <size_t _Index, typename _This, typename... _Rest> struct random_tuple_object_impl : public random_tuple_object_impl<_Index + 1, _Rest...> {
+    using base = random_tuple_object_impl<_Index + 1, _Rest...>;
+    template <typename... _Ts, typename... _Rests> inline auto make_tuple(std::tuple<_Ts...>&& _ts, _Rests&&... _rts) const -> void {
+        base::make_tuple(std::forward<_Rests>(_rts)...);
+        _tuple = std::tuple_cat(
+            std::forward_as_tuple(_M_rand(std::move(_ts), std::make_index_sequence<sizeof...(_Ts)>{})),
+            base::_tuple
+        );
+    };
+    inline void make_tuple() const override {
+        base::make_tuple();
+        _tuple = std::tuple_cat(std::forward_as_tuple(_ro.rand()), base::_tuple);
+    }
+private:
+    template <typename... _Ts, size_t... _N> inline auto _M_rand(std::tuple<_Ts...>&& _ts, std::index_sequence<_N...>) const -> _This {
+        return _ro.rand(std::forward<_Ts>(std::get<_N>(_ts))...);
+    }
+protected:
+    mutable std::tuple<_This, _Rest...> _tuple;
+private:
+    random_object<_This> _ro;
+};
+template <size_t _Index, typename _This> struct random_tuple_object_impl<_Index, _This> : public random_object_base {
+    template <typename... _Ts> inline auto make_tuple(std::tuple<_Ts...>&& _ts) const -> void {
+        _tuple = std::make_tuple(_M_rand(std::move(_ts), std::make_index_sequence<sizeof...(_Ts)>{}));
+    };
+    virtual inline void make_tuple() const {
+        _tuple = std::make_tuple(_ro.rand());
+    }
+private:
+    template <typename... _Ts, size_t... _N> inline auto _M_rand(std::tuple<_Ts...>&& _ts, std::index_sequence<_N...>) const -> _This {
+        return _ro.rand(std::forward<_Ts>(std::get<_N>(_ts))...);
+    }
+protected:
+    mutable std::tuple<_This> _tuple;
+private:
+    random_object<_This> _ro;
+};
+
+}
+
+template <typename... _Ts> struct random_object<std::tuple<_Ts...>> : public random_tuple_object_impl<0, _Ts...> {
+    using obj_type = std::tuple<_Ts...>;
+    using bound_type = void;
+    using base = random_tuple_object_impl<0, _Ts...>;
+    template <typename... _Tts> auto rand(_Tts&&... _tts) const -> obj_type {
+        base::make_tuple(std::forward<_Tts>(_tts)...);
+        return base::_tuple;
+    }
+    auto rand() const -> obj_type {
+        base::make_tuple();
+        return base::_tuple;
+    };
+};
+
 template <> struct random_object<void> : public random_object_base {
     using object_type = size_t;
     using bound_type = double;

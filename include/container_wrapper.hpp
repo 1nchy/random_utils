@@ -17,6 +17,9 @@ namespace icy {
 
 namespace container {
 
+template <typename... _Ts> std::ostream& operator<<(std::ostream& _os, const std::tuple<_Ts...>& _tuple);
+template <typename _T1, typename _T2> std::ostream& operator<<(std::ostream& _os, const std::pair<_T1, _T2>& _pair);
+
 namespace {
 template <size_t _Index, typename _Tuple> struct tuple_print {
     static void print(std::ostream& _os, const _Tuple& _t) {
@@ -61,6 +64,10 @@ template <typename... _Ts> std::ostream& operator<<(std::ostream& _os, const std
     _os << '(';
     tuple_print<sizeof...(_Ts), decltype(_tuple)>::print(_os, _tuple);
     _os << ')';
+    return _os;
+}
+template <typename _T1, typename _T2> std::ostream& operator<<(std::ostream& _os, const std::pair<_T1, _T2>& _pair) {
+    _os << '(' << _pair.first << ", " << _pair.second << ')';
     return _os;
 }
 
@@ -131,7 +138,7 @@ template <size_t _Index, typename _This, typename... _Rest> struct callable_impl
     ~callable_impl() override = default;
     void operator()() override {
         base::operator()();
-        _tuple = std::tuple_cat(std::make_tuple(_ro.rand()), base::_tuple);
+        _tuple = std::tuple_cat(std::forward_as_tuple(_ro.rand()), base::_tuple);
     }
     using value_type = std::decay<typename std::remove_reference<_This>::type>::type;
     typename tuple_cat_result<value_type, decltype(base::_tuple)>::type _tuple;
