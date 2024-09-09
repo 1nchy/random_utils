@@ -159,6 +159,34 @@ private:
     random_object<char> _cro;
 };
 
+template <typename _T1, typename _T2> struct random_object<std::pair<_T1, _T2>> : public random_object_base {
+    using obj_type = std::pair<_T1, _T2>;
+    using bound_type = void;
+    using bound1_type = random_object<_T1>::bound_type;
+    using bound2_type = random_object<_T2>::bound_type;
+    template <typename... _Ts1, typename... _Ts2> inline auto
+    rand(std::tuple<_Ts1...>&& _ts1, std::tuple<_Ts2...>&& _ts2) const -> obj_type {
+        return _M_rand(std::move(_ts1), std::make_index_sequence<sizeof...(_Ts1)>{}, std::move(_ts2), std::make_index_sequence<sizeof...(_Ts2)>{});
+    };
+    auto rand() const -> obj_type {
+        return std::make_pair(_ro1.rand(), _ro2.rand());
+    };
+private:
+    template <typename... _Ts1, size_t... _N1, typename... _Ts2, size_t... _N2> auto
+    _M_rand(
+        std::tuple<_Ts1...>&& _ts1, std::index_sequence<_N1...>,
+        std::tuple<_Ts2...>&& _ts2, std::index_sequence<_N2...>
+    ) const -> obj_type {
+        return std::make_pair(
+            _ro1.rand(std::forward<_Ts1>(std::get<_N1>(_ts1))...),
+            _ro2.rand(std::forward<_Ts2>(std::get<_N2>(_ts2))...)
+        );
+    };
+private:
+    random_object<_T1> _ro1;
+    random_object<_T2> _ro2;
+};
+
 template <> struct random_object<void> : public random_object_base {
     using object_type = size_t;
     using bound_type = double;
