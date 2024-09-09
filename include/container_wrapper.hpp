@@ -134,7 +134,7 @@ template <size_t _Index, typename _This, typename... _Rest> struct callable_impl
     ~callable_impl() override = default;
     void operator()() override {
         base::operator()();
-        _tuple = std::tuple_cat(std::make_tuple(_ro.rand()), base::_tuple);
+        _tuple = std::tuple_cat(std::forward_as_tuple(_ro.rand()), base::_tuple);
     }
     using value_type = std::decay<typename std::remove_reference<_This>::type>::type;
     typename tuple_cat_result<value_type, decltype(base::_tuple)>::type _tuple;
