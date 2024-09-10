@@ -73,13 +73,46 @@ template <typename _T1, typename _T2> std::ostream& operator<<(std::ostream& _os
 
 struct virtual_callable;
 template <typename _Container, bool _Const, typename _R, typename... _Args> struct callable;
-template <size_t _Index, typename _This, typename... _Rest> struct callable_impl;
 struct virtual_callable {
     virtual void operator()() = 0;
     virtual ~virtual_callable() = default;
     virtual std::string message() const = 0;
 };
 
+
+
+namespace {
+
+template <size_t _Index, typename _This, typename... _Rest> struct callable_impl;
+
+template <size_t _Index, typename _This, typename... _Rest> struct callable_impl : public callable_impl<_Index + 1, _Rest...> {
+    using base = callable_impl<_Index + 1, _Rest...>;
+    using value_type = std::decay<typename std::remove_reference<_This>::type>::type;
+    using tuple_type = tuple_cat_result<value_type, typename base::tuple_type>::type;
+    ~callable_impl() override = default;
+    void operator()() override {
+        base::operator()();
+        _tuple = std::tuple_cat(std::forward_as_tuple(_ro.rand()), base::_tuple);
+    }
+protected:
+    tuple_type _tuple;
+private:
+    random_object<value_type> _ro;
+};
+template <size_t _Index, typename _This> struct callable_impl<_Index, _This> : public virtual_callable {
+    using value_type = std::decay<typename std::remove_reference<_This>::type>::type;
+    using tuple_type = std::tuple<value_type>;
+    ~callable_impl() override = default;
+    void operator()() override {
+        _tuple = std::make_tuple(_ro.rand());
+    }
+protected:
+    tuple_type _tuple;
+private:
+    random_object<value_type> _ro;
+};
+
+}
 
 template <typename _Container, bool _Const, typename _R, typename... _Args> struct callable : public callable_impl<0, _Args...> {
     using base = callable_impl<0, _Args...>;
@@ -133,29 +166,6 @@ private:
     const method_type _call;
 };
 
-template <size_t _Index, typename _This, typename... _Rest> struct callable_impl : public callable_impl<_Index + 1, _Rest...> {
-    using base = callable_impl<_Index + 1, _Rest...>;
-    ~callable_impl() override = default;
-    void operator()() override {
-        base::operator()();
-        _tuple = std::tuple_cat(std::forward_as_tuple(_ro.rand()), base::_tuple);
-    }
-    using value_type = std::decay<typename std::remove_reference<_This>::type>::type;
-    typename tuple_cat_result<value_type, decltype(base::_tuple)>::type _tuple;
-    // typename std::__tuple_cat_result<std::tuple<value_type>, decltype(base::_tuple)>::__type _tuple;
-private:
-    random_object<value_type> _ro;
-};
-template <size_t _Index, typename _This> struct callable_impl<_Index, _This> : public virtual_callable {
-    ~callable_impl() override = default;
-    void operator()() override {
-        _tuple = std::make_tuple(_ro.rand());
-    }
-    using value_type = std::decay<typename std::remove_reference<_This>::type>::type;
-    std::tuple<value_type> _tuple;
-private:
-    random_object<value_type> _ro;
-};
 
 
 /**
