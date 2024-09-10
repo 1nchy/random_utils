@@ -43,6 +43,7 @@ struct random_object_base {
 template <typename _Tp> struct random_object<_Tp, typename std::enable_if<std::is_integral<_Tp>::value>::type> : public random_object_base {
     using obj_type = _Tp;
     using bound_type = _Tp;
+    virtual ~random_object() override = default;
     static inline bound_type lb = 0; // lower bound
     static inline bound_type ub = 2; // upper bound
     /**
@@ -68,6 +69,7 @@ template <typename _Tp> using random_integral_object = random_object<_Tp, typena
 template <typename _Tp> struct random_object<_Tp, typename std::enable_if<std::is_floating_point<_Tp>::value>::type> : public random_object_base {
     using obj_type = _Tp;
     using bound_type = _Tp;
+    virtual ~random_object() override = default;
     static inline bound_type lb = 0.0; // lower bound
     static inline bound_type ub = 1.0; // upper bound
     /**
@@ -92,6 +94,7 @@ template <typename _Tp> using random_floating_point_object = random_object<_Tp, 
 template <> struct random_object<char> : public random_object_base {
     using obj_type = char;
     using bound_type = char;
+    virtual ~random_object() override = default;
     static inline bound_type lb = 'a'; // lower bound
     static inline bound_type ub = 'z'; // upper bound
     /**
@@ -120,6 +123,7 @@ template <> struct random_object<char> : public random_object_base {
 template <> struct random_object<std::string> : public random_object_base {
     using obj_type = std::string;
     using bound_type = std::string::value_type;
+    virtual ~random_object() override = default;
     static inline bound_type lb = 'a'; // lower bound
     static inline bound_type ub = 'z'; // upper bound
     static inline size_t llb = 3; // lower length bound
@@ -162,6 +166,7 @@ private:
 template <typename _T1, typename _T2> struct random_object<std::pair<_T1, _T2>> : public random_object_base {
     using obj_type = std::pair<_T1, _T2>;
     using bound_type = void;
+    virtual ~random_object() override = default;
     template <typename... _Ts1, typename... _Ts2> inline auto
     rand(std::tuple<_Ts1...>&& _ts1, std::tuple<_Ts2...>&& _ts2) const -> obj_type {
         return _M_rand(std::move(_ts1), std::make_index_sequence<sizeof...(_Ts1)>{}, std::move(_ts2), std::make_index_sequence<sizeof...(_Ts2)>{});
@@ -191,6 +196,7 @@ template <size_t _Index, typename _This, typename... _Rest> struct random_tuple_
 
 template <size_t _Index, typename _This, typename... _Rest> struct random_tuple_object_impl : public random_tuple_object_impl<_Index + 1, _Rest...> {
     using base = random_tuple_object_impl<_Index + 1, _Rest...>;
+    virtual ~random_tuple_object_impl() override = default;
     template <typename... _Ts, typename... _Rests> inline auto make_tuple(std::tuple<_Ts...>&& _ts, _Rests&&... _rts) const -> void {
         base::make_tuple(std::forward<_Rests>(_rts)...);
         _tuple = std::tuple_cat(
@@ -212,6 +218,7 @@ private:
     random_object<_This> _ro;
 };
 template <size_t _Index, typename _This> struct random_tuple_object_impl<_Index, _This> : public random_object_base {
+    virtual ~random_tuple_object_impl() override = default;
     template <typename... _Ts> inline auto make_tuple(std::tuple<_Ts...>&& _ts) const -> void {
         _tuple = std::make_tuple(_M_rand(std::move(_ts), std::make_index_sequence<sizeof...(_Ts)>{}));
     };
@@ -234,6 +241,7 @@ template <typename... _Ts> struct random_object<std::tuple<_Ts...>> : public ran
     using obj_type = std::tuple<_Ts...>;
     using bound_type = void;
     using base = random_tuple_object_impl<0, _Ts...>;
+    virtual ~random_object() override = default;
     template <typename... _Tts> auto rand(_Tts&&... _tts) const -> obj_type {
         base::make_tuple(std::forward<_Tts>(_tts)...);
         return base::_tuple;
@@ -247,6 +255,7 @@ template <typename... _Ts> struct random_object<std::tuple<_Ts...>> : public ran
 template <> struct random_object<void> : public random_object_base {
     using object_type = size_t;
     using bound_type = double;
+    virtual ~random_object() override = default;
     template <typename... _Bounds> random_object(_Bounds&&... _bs) {
         _density.clear();
         _M_init_density(std::forward<_Bounds>(_bs)...);

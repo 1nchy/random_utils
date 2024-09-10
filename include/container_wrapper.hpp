@@ -89,7 +89,7 @@ template <size_t _Index, typename _This, typename... _Rest> struct callable_impl
     using base = callable_impl<_Index + 1, _Rest...>;
     using value_type = std::decay<typename std::remove_reference<_This>::type>::type;
     using tuple_type = tuple_cat_result<value_type, typename base::tuple_type>::type;
-    ~callable_impl() override = default;
+    virtual ~callable_impl() override = default;
     void operator()() override {
         base::operator()();
         _tuple = std::tuple_cat(std::forward_as_tuple(_ro.rand()), base::_tuple);
@@ -102,7 +102,7 @@ private:
 template <size_t _Index, typename _This> struct callable_impl<_Index, _This> : public virtual_callable {
     using value_type = std::decay<typename std::remove_reference<_This>::type>::type;
     using tuple_type = std::tuple<value_type>;
-    ~callable_impl() override = default;
+    virtual ~callable_impl() override = default;
     void operator()() override {
         _tuple = std::make_tuple(_ro.rand());
     }
@@ -119,6 +119,7 @@ template <typename _Container, bool _Const, typename _R, typename... _Args> stru
     using container_type = _Container;
     using method_type = std::conditional<_Const, _R(container_type::*)(_Args...)const, _R(container_type::*)(_Args...)>::type;
     callable(container_type* _c, method_type _p) : _container(_c), _call(_p) {}
+    virtual ~callable() override = default;
     void operator()() override {
         base::operator()();
         // std::cout << base::_tuple << std::endl;
@@ -152,6 +153,7 @@ template <typename _Container, bool _Const, typename _R> struct callable<_Contai
     using container_type = _Container;
     using method_type = std::conditional<_Const, _R(container_type::*)()const, _R(container_type::*)()>::type;
     callable(container_type* _c, method_type _p) : _container(_c), _call(_p) {}
+    virtual ~callable() override = default;
     void operator()() override {
         (_container->*_call)();
     }
@@ -175,6 +177,8 @@ private:
 template <typename _Tp> class wrapper {
     using container_type = _Tp;
     enum { _operation_n = 1000000ul };
+public:
+    ~wrapper() = default;
 public:
     /**
      * @brief enroll string key, method pointer and probability
