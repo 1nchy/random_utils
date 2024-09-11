@@ -217,24 +217,16 @@ template <typename _Tp> struct wrapper_alloc : public std::allocator<_Tp> {
     const container_allocator_type& _M_get_container_allocator() const { return *static_cast<const container_allocator_type*>(this); }
 
     template <typename... _Args> container_type* _M_allocate_container(_Args&&... _args) const {
-    // container_type* _M_allocate_container() const {
         container_allocator_type _a = _M_get_container_allocator();
         auto _ptr = container_alloc_traits::allocate(_a, 1);
         container_type* _p = std::addressof(*_ptr);
-    //     return _p;
-    // }
-    // template <typename... _Args> void _M_construct_container(container_type* _p, _Args&&... _args) const {
-    //     container_allocator_type _a = _M_get_container_allocator();
         container_alloc_traits::construct(_a, _p, std::forward<_Args>(_args)...);
         return _p;
     }
     void _M_deallocate_container(container_type* _p) const {
         container_allocator_type _a = _M_get_container_allocator();
-        container_alloc_traits::deallocate(_a, _p, 1);
-    // }
-    // void _M_destruct_container(container_type* _p) const {
-    //     container_allocator_type _a = _M_get_container_allocator();
         container_alloc_traits::destroy(_a, _p);
+        container_alloc_traits::deallocate(_a, _p, 1);
     }
 };
 
