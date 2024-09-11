@@ -401,7 +401,7 @@ template <typename _Tp> auto wrapper<_Tp>::run(const size_t _n) -> void {
     }
 };
 template <typename _Tp> auto wrapper<_Tp>::try_check() const -> unsigned {
-    return _M_check<container_type>(std::addressof(_container));
+    return _M_check<container_type>(_container);
 };
 template <typename _Tp> auto wrapper<_Tp>::log_file(const std::string& _file) -> void {
     _fs = std::ofstream(_file, std::ios_base::out | std::ios_base::trunc);
