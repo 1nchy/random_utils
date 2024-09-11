@@ -259,8 +259,6 @@ public:
 
     auto enroll_copy_construtor(double _weight = 1.0) -> void;
     auto enroll_move_construtor(double _weight = 1.0) -> void;
-    auto enroll_copy_assignment(double _weight = 1.0) -> void;
-    auto enroll_move_assignment(double _weight = 1.0) -> void;
     /**
      * @brief call an enrolled method
      * @tparam _R return type of the specific method
@@ -292,7 +290,8 @@ private:
      * @param _k string key of the method
      */
     auto _M_call_with_random_args(const std::string& _k) -> void;
-    void _M_call_constructor();
+    void _M_call_copy_constructor();
+    void _M_call_move_constructor();
     void _M_call_assignment_operator(const size_t _n);
     inline auto _M_get_message(const std::string& _k) const -> std::string {
         if (_object_oriented_methods.contains(_k)) {
@@ -347,23 +346,19 @@ template <typename _Tp> auto wrapper<_Tp>::enroll_copy_construtor(double _weight
     assert(std::is_copy_constructible<container_type>::value);
     const std::string _k = "copy constructor";
     auto _ptr = std::make_shared<callable_constructor<container_type>>(std::ref(_container), [this]() {
-        this->_M_call_constructor();
+        this->_M_call_copy_constructor();
     });
     _object_oriented_methods[_k] = _ptr;
     _dist.emplace_back(_weight, _k);
 };
 template <typename _Tp> auto wrapper<_Tp>::enroll_move_construtor(double _weight) -> void {
     assert(std::is_move_constructible<container_type>::value);
-};
-template <typename _Tp> auto wrapper<_Tp>::enroll_copy_assignment(double _weight) -> void {
-    assert(std::is_copy_assignable<container_type>::value);
-    // const std::string _k = "copy assignment";
-    // auto _ptr = std::make_shared<callable_assignment<container_type>>(std::ref(_container));
-    // _object_oriented_methods[_k] = _ptr;
-    // _dist.emplace_back(_weight, _k);
-};
-template <typename _Tp> auto wrapper<_Tp>::enroll_move_assignment(double _weight) -> void {
-    assert(std::is_move_assignable<container_type>::value);
+    const std::string _k = "move constructor";
+    auto _ptr = std::make_shared<callable_constructor<container_type>>(std::ref(_container), [this]() {
+        this->_M_call_move_constructor();
+    });
+    _object_oriented_methods[_k] = _ptr;
+    _dist.emplace_back(_weight, _k);
 };
 
 template <typename _Tp> template <typename _R, typename... _Args> auto wrapper<_Tp>::
@@ -410,25 +405,17 @@ template <typename _Tp> auto wrapper<_Tp>::_M_call_with_random_args(const std::s
         _enrollment.at(_k)->operator()();
     }
 };
-template <typename _Tp> auto wrapper<_Tp>::_M_call_constructor() -> void {
+template <typename _Tp> auto wrapper<_Tp>::_M_call_copy_constructor() -> void {
+    assert(std::is_copy_constructible<container_type>::value);
     container_type* _nc = this->_M_allocate_container(*_container);
     this->_M_deallocate_container(_container);
     _container = _nc;
 };
-template <typename _Tp> auto wrapper<_Tp>::_M_call_assignment_operator(const size_t _n) -> void {
-    container_type* _nc = this->_M_allocate_container();
-    container_type* _oc = _container;
+template <typename _Tp> auto wrapper<_Tp>::_M_call_move_constructor() -> void {
+    assert(std::is_move_constructible<container_type>::value);
+    container_type* _nc = this->_M_allocate_container(std::move(*_container));
+    this->_M_deallocate_container(_container);
     _container = _nc;
-    for (size_t _i = 0; _i < _n; ++_i) {
-        const std::string& _k = _dist.at(_vro.rand()).second;
-        _M_call_with_random_args(_k);
-        if (const auto _result = try_check()) {
-            throw std::logic_error(std::string("logic error inside the container : " + std::to_string(_result)));
-        }
-    }
-    _container = _oc;
-    *_container = *_nc;
-    this->_M_deallocate_container(_nc);
 };
 
 }
