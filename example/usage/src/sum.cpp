@@ -2,6 +2,17 @@
 
 #include <iostream>
 
+sum::sum() {
+    printf("constructor\n");
+    _total = 0;
+}
+sum::sum(const sum& _rhs) {
+    _total = _rhs._total + 1;
+    printf("copy constructor (%d)\n", _total);
+}
+sum::~sum() {
+    printf("destructor\n");
+}
 int sum::sum3(const int& a, const int& b, const int& c) {
     _total += (a + b + c);
     return a + b + c;

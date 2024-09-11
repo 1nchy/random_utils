@@ -4,6 +4,9 @@
 #include <utility>
 
 struct sum {
+    sum();
+    sum(const sum&);
+    ~sum();
     int sum3(const int& a, const int& b, const int& c);
     int sum2(const int a, const int b);
     int sum1(int& a);
