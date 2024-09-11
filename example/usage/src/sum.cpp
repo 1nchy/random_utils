@@ -7,7 +7,7 @@ sum::sum() {
     _total = 0;
 }
 sum::sum(const sum& _rhs) {
-    _total = _rhs._total + 1;
+    _total = _rhs._total - 1;
     printf("copy constructor (%d)\n", _total);
 }
 sum::~sum() {

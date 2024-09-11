@@ -27,7 +27,7 @@ int main() {
     //     std::cout << std::endl;
     // }
     icy::random_object<int>::lb = -1;
-    icy::random_integral_object<int>::ub = 4;
+    icy::random_integral_object<int>::ub = 3;
     icy::container::wrapper<sum> _ws;
     _ws.enroll("sum3", &sum::sum3);
     _ws.enroll("sum2", &sum::sum2);
@@ -47,7 +47,7 @@ int main() {
     // _wc.enroll("cat1", &cat::cat1);
     // _wc.enroll("cat0", &cat::cat0, 3.0);
     // _wc.enroll("cat000", &cat::cat000);
-    // _wc.log_file("main.txt");
+    // _wc.log_file("cat.txt");
     // _wc.enable_log();
     // _wc.run(30);
     return 0;
