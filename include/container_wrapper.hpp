@@ -295,11 +295,11 @@ private:
     void _M_call_constructor();
     void _M_call_assignment_operator(const size_t _n);
     inline auto _M_get_message(const std::string& _k) const -> std::string {
-        if (_enrollment.contains(_k)) {
-            return _enrollment.at(_k)->message();
-        }
-        else if (_object_oriented_methods.contains(_k)) {
+        if (_object_oriented_methods.contains(_k)) {
             return _object_oriented_methods.at(_k)->message();
+        }
+        else if (_enrollment.contains(_k)) {
+            return _enrollment.at(_k)->message();
         }
         return "";
     }
@@ -330,12 +330,14 @@ template <typename _Tp> wrapper<_Tp>::~wrapper() {
 
 template <typename _Tp> template <typename _R, typename... _Args> auto wrapper<_Tp>::
 enroll(const std::string& _k, _R(_Tp::*_p)(_Args...), double _weight) -> void {
+    if (_object_oriented_methods.contains(_k)) return;
     auto _ptr = std::make_shared<callable<container_type, false, _R, _Args...>>(std::ref(_container), _p);
     _enrollment[_k] = _ptr;
     _dist.emplace_back(_weight, _k);
 };
 template <typename _Tp> template <typename _R, typename... _Args> auto wrapper<_Tp>::
 enroll(const std::string& _k, _R(_Tp::*_p)(_Args...)const, double _weight) -> void {
+    if (_object_oriented_methods.contains(_k)) return;
     auto _ptr = std::make_shared<callable<container_type, true, _R, _Args...>>(std::ref(_container), _p);
     _enrollment[_k] = _ptr;
     _dist.emplace_back(_weight, _k);
@@ -401,11 +403,11 @@ template <typename _Tp> auto wrapper<_Tp>::log_file(const std::string& _file) ->
 
 
 template <typename _Tp> auto wrapper<_Tp>::_M_call_with_random_args(const std::string& _k) -> void {
-    if (_enrollment.contains(_k)) {
-        _enrollment.at(_k)->operator()();
-    }
-    else if (_object_oriented_methods.contains(_k)) {
+    if (_object_oriented_methods.contains(_k)) {
         _object_oriented_methods.at(_k)->operator()();
+    }
+    else if (_enrollment.contains(_k)) {
+        _enrollment.at(_k)->operator()();
     }
 };
 template <typename _Tp> auto wrapper<_Tp>::_M_call_constructor() -> void {
