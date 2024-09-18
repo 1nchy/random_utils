@@ -49,6 +49,7 @@ template <typename... _Ls, typename... _Rs> struct tuple_cat_result<std::tuple<_
     using type = std::tuple<_Ls..., _Rs...>;
 };
 
+/*
 template <typename _Container> struct has_unsigned_check_const {
 private:
     // template <typename _U> static auto _M_check(int)
@@ -58,6 +59,14 @@ private:
     template <typename _U> static auto _M_check(...) -> std::false_type;
 public:
     enum { value = std::is_same<decltype(_M_check<_Container>(0)), std::true_type>::value };
+};
+template <typename _Container, std::enable_if<has_unsigned_check_const<_Container>::value, unsigned>::type = 0u> 
+unsigned _M_check(const _Container* _c) const { return _c->check(); }
+template <typename _Container> unsigned _M_check(...) const { return 0u; }
+*/
+
+template <typename _Tp> concept has_unsigned_check_const = requires (const _Tp _c) {
+    {_c.check()} -> std::same_as<unsigned>;
 };
 }
 template <typename... _Ts> std::ostream& operator<<(std::ostream& _os, const std::tuple<_Ts...>& _tuple) {
@@ -74,7 +83,6 @@ template <typename _T1, typename _T2> std::ostream& operator<<(std::ostream& _os
 struct virtual_callable;
 template <typename _Container, bool _Const, typename _R, typename... _Args> struct callable;
 template <typename _Container> struct callable_constructor;
-// template <typename _Container> struct callable_assignment;
 struct virtual_callable {
     virtual void operator()() = 0;
     virtual ~virtual_callable() = default;
@@ -128,7 +136,7 @@ template <typename _Container, bool _Const, typename _R, typename... _Args> stru
         // std::cout << base::_tuple << std::endl;
         /**
          * @details std::apply(_call, std::tuple_cat(std::forward_as_tuple(*_container), base::_tuple));
-         * std::apply cant handle reference parameter.
+         * std::apply can't handle reference parameters.
          */
         invoke_tuple(base::_tuple);
     }
@@ -145,7 +153,6 @@ private:
         _M_invoke_tuple(_tuple, std::make_index_sequence<sizeof...(_Args)>{});
     }
     template <typename _Tuple, size_t... _N> void _M_invoke_tuple(_Tuple& _tuple, std::index_sequence<_N...>) {
-        // (_container->*_call)(std::get<_N>(_tuple)...);
         (_container->*_call)(std::forward<_Args>(std::get<_N>(_tuple))...);
     }
 private:
@@ -177,21 +184,6 @@ template <typename _Container> struct callable_constructor : public virtual_call
     using container_pointer = container_type*;
     callable_constructor(container_pointer& _c, std::function<void(void)>&& _f) : _container(_c), _func(_f) {}
     virtual ~callable_constructor() override = default;
-    void operator()() override {
-        _func();
-    }
-    std::string message() const override {
-        return "";
-    }
-private:
-    container_pointer& _container;
-    std::function<void(void)> _func;
-};
-template <typename _Container> struct callable_assignment : public virtual_callable {
-    using container_type = _Container;
-    using container_pointer = container_type*;
-    callable_assignment(container_pointer& _c, std::function<void(void)>&& _f) : _container(_c), _func(_f) {}
-    virtual ~callable_assignment() override = default;
     void operator()() override {
         _func();
     }
@@ -292,7 +284,6 @@ private:
     auto _M_call_with_random_args(const std::string& _k) -> void;
     void _M_call_copy_constructor();
     void _M_call_move_constructor();
-    void _M_call_assignment_operator(const size_t _n);
     inline auto _M_get_message(const std::string& _k) const -> std::string {
         if (_object_oriented_methods.contains(_k)) {
             return _object_oriented_methods.at(_k)->message();
@@ -303,7 +294,7 @@ private:
         return "";
     }
 private:
-    template <typename _Container, std::enable_if<has_unsigned_check_const<_Container>::value, unsigned>::type = 0u> 
+    template <typename _Container> requires has_unsigned_check_const<_Container>
     unsigned _M_check(const _Container* _c) const { return _c->check(); }
     template <typename _Container> unsigned _M_check(...) const { return 0u; }
 private:

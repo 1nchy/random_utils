@@ -27,7 +27,7 @@ inline size_t _S_diff_to_0(char _c) {
 void _S_init_random_seed();
 
 struct random_object_base;
-template <typename _Tp, typename _Enable = void> struct random_object;
+template <typename _Tp> struct random_object;
 
 
 
@@ -40,7 +40,7 @@ struct random_object_base {
  * @brief partial specialization for integral
  * @tparam _Tp integral type
 */
-template <typename _Tp> struct random_object<_Tp, typename std::enable_if<std::is_integral<_Tp>::value>::type> : public random_object_base {
+template <std::integral _Tp> struct random_object<_Tp> : public random_object_base {
     using obj_type = _Tp;
     using bound_type = _Tp;
     virtual ~random_object() override = default;
@@ -60,13 +60,13 @@ template <typename _Tp> struct random_object<_Tp, typename std::enable_if<std::i
         return rand(lb, ub);
     };
 };
-template <typename _Tp> using random_integral_object = random_object<_Tp, typename std::enable_if<std::is_integral<_Tp>::value>::type>;
+template <std::integral _Tp> using random_integral_object = random_object<_Tp>;
 
 /**
  * @brief partial specialization for floating point
  * @brief _Tp floating point type
  */
-template <typename _Tp> struct random_object<_Tp, typename std::enable_if<std::is_floating_point<_Tp>::value>::type> : public random_object_base {
+template <std::floating_point _Tp> struct random_object<_Tp> : public random_object_base {
     using obj_type = _Tp;
     using bound_type = _Tp;
     virtual ~random_object() override = default;
@@ -86,7 +86,7 @@ template <typename _Tp> struct random_object<_Tp, typename std::enable_if<std::i
         return rand(lb, ub);
     };
 };
-template <typename _Tp> using random_floating_point_object = random_object<_Tp, typename std::enable_if<std::is_floating_point<_Tp>::value>::type>;
+template <std::floating_point _Tp> using random_floating_point_object = random_object<_Tp>;
 
 /**
  * @brief partial specialization for char
