@@ -103,6 +103,33 @@ public:
     };
 };
 /**
+ * @brief specialization for bool (binomial distribution)
+ */
+template <> struct random_object_impl<bool> : public random_object_base {
+protected:
+    virtual ~random_object_impl() = default;
+public:
+    using obj_type = bool;
+    using bound_type = double;
+    static inline bound_type lb = 1.0; // probability of @c false
+    static inline bound_type ub = 1.0; // probability of @c true
+    /**
+     * @brief return random bool in binomial distribution
+     * @param _l probability of @c false
+     * @param _u probability of @c true
+     */
+    inline auto rand(bound_type _l, bound_type _u) const -> obj_type {
+        assert(_l > 0 && _u > 0);
+        return obj_type((static_cast<bound_type>(std::rand()) / RAND_MAX * (_l + _u)) < _u);
+    }
+    /**
+     * @brief return random bool
+     */
+    inline auto rand() const -> obj_type {
+        return rand(lb, ub);
+    }
+};
+/**
  * @brief specialization for char
  */
 template <> struct random_object_impl<char> : public random_object_base {

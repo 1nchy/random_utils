@@ -10,6 +10,16 @@ int main() {
     icy::random_object<char>::ub = 'f';
     icy::random_object<std::string>::lb = 4;
     icy::random_object<std::string>::ub = 7;
+    icy::random_object<bool>::lb = 4.0;
+    icy::random_object<bool>::ub = 2.5;
+    size_t _false_count = 0ul;
+    size_t _true_count = 0ul;
+    icy::random_object<bool> _ro0;
+    for (size_t _i = 0; _i < 100000; ++_i) {
+        if (_ro0.rand()) ++_true_count;
+        else ++_false_count;
+    }
+    std::cout << "true: " << _true_count << ", false: " << _false_count << std::endl;
     icy::random_object<std::pair<const unsigned, std::string>> _ro1;
     for (size_t _i = 0; _i < 10; ++_i) {
         // const std::pair<unsigned, std::string>& _p = _ro1.rand(
