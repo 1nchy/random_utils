@@ -26,6 +26,15 @@ template <typename _Tp> inline auto bound(const _Tp& _x, const _Tp& _b1, const _
 void _S_init_random_seed();
 
 struct random_object_base;
+/**
+ * @brief random object implement (DO NOT USE DIRECTLY)
+ * @tparam _Tp type without const and volatile
+ */
+template <typename _Tp> struct random_object_impl;
+/**
+ * @brief random object generator
+ * @tparam _Tp random type (without reference)
+ */
 template <typename _Tp> struct random_object;
 
 
@@ -36,15 +45,13 @@ protected:
     virtual ~random_object_base() = default;
 };
 
-template <typename _Tp> struct random_object_impl;
-
 template <typename _Tp> struct random_object : public random_object_impl<typename std::remove_cv<_Tp>::type> {
     using base = random_object_impl<typename std::remove_cv<_Tp>::type>;
     virtual ~random_object() = default;
 };
 
 /**
- * @brief partial specialization for integral
+ * @brief specialization for integral
  * @tparam _Tp integral type
 */
 template <std::integral _Tp> struct random_object_impl<_Tp> : public random_object_base {
@@ -70,8 +77,8 @@ public:
     };
 };
 /**
- * @brief partial specialization for floating point
- * @brief _Tp floating point type
+ * @brief specialization for floating point
+ * @tparam _Tp floating point type
  */
 template <std::floating_point _Tp> struct random_object_impl<_Tp> : public random_object_base {
 protected:
@@ -134,10 +141,11 @@ protected:
 public:
     using obj_type = std::string;
     using bound_type = std::string::value_type;
+    using size_type = std::string::size_type;
     static inline bound_type lb = 'a'; // lower bound
     static inline bound_type ub = 'z'; // upper bound
-    static inline size_t llb = 3; // lower length bound
-    static inline size_t ulb = 4; // upper length bound
+    static inline size_type llb = 3; // lower length bound
+    static inline size_type ulb = 4; // upper length bound
     /**
      * @brief return random string, with elements in [_l, _u] and size in [_ll, _ul)
      * @param _ll lower length bound
@@ -145,9 +153,9 @@ public:
      * @param _l from 0 to 9, from A to Z, from a to z
      * @param _u from 0 to 9, from A to Z, from a to z
      */
-    auto rand(size_t _ll, size_t _ul, bound_type _l, bound_type _u) const -> obj_type {
+    auto rand(size_type _ll, size_type _ul, bound_type _l, bound_type _u) const -> obj_type {
         assert(_l < _u);
-        size_t _length = _ulro.rand(_ll, _ul);
+        size_type _length = _ulro.rand(_ll, _ul);
         std::string _str(_length, 0);
         for (auto& _c : _str) {
             _c = _cro.rand(_l, _u);
@@ -159,7 +167,7 @@ public:
      * @param _ll lower length bound
      * @param _ul upper length bound
      */
-    inline auto rand(size_t _ll, size_t _ul) const -> obj_type {
+    inline auto rand(size_type _ll, size_type _ul) const -> obj_type {
         return rand(_ll, _ul, lb, ub);
     };
     /**
@@ -169,8 +177,8 @@ public:
         return rand(llb, ulb, lb, ub);
     };
 private:
-    random_object<size_t> _ulro;
-    random_object<char> _cro;
+    random_object<size_type> _ulro;
+    random_object<bound_type> _cro;
 };
 
 
@@ -199,8 +207,8 @@ private:
         );
     };
 private:
-    random_object<typename std::remove_cv<_T1>::type> _ro1;
-    random_object<typename std::remove_cv<_T2>::type> _ro2;
+    random_object<_T1> _ro1;
+    random_object<_T2> _ro2;
 };
 
 namespace {
@@ -230,7 +238,7 @@ private:
 protected:
     mutable std::tuple<_This, _Rest...> _tuple;
 private:
-    random_object<typename std::remove_cv<_This>::type> _ro;
+    random_object<_This> _ro;
 };
 template <size_t _Index, typename _This> struct random_tuple_object_impl<_Index, _This> : public random_object_base {
 protected:
@@ -249,7 +257,7 @@ private:
 protected:
     mutable std::tuple<_This> _tuple;
 private:
-    random_object<typename std::remove_cv<_This>::type> _ro;
+    random_object<_This> _ro;
 };
 
 }
@@ -272,34 +280,43 @@ public:
 };
 
 
-
+/**
+ * @brief random unsigned long generator for probability distribution
+ */
 template <> struct random_object<void> : public random_object_base {
     using object_type = size_t;
     using bound_type = double;
     virtual ~random_object() = default;
-    template <typename... _Bounds> random_object(_Bounds&&... _bs) {
-        _density.clear();
-        _M_init_density(std::forward<_Bounds>(_bs)...);
+    random_object() = default;
+    random_object(std::initializer_list<bound_type> _il) {
+        update_density(_il);
     }
     /**
-     * @brief return random unsigned for probability distribution given in constructor
+     * @brief return random unsigned long for probability distribution given in constructor
      */
     auto rand() const -> object_type {
         if (_density.empty()) return 0;
         return std::lower_bound(_density.cbegin(), _density.cend(), _btro.rand(0, _density.back())) - _density.cbegin();
     }
+    /**
+     * @brief update probability density
+     * @tparam _Iter any iterator
+     * @param _b begin
+     * @param _e end
+     * @param _getter method to get value from iterator, operator*(_Iter)->bound_type by default
+     */
     template <typename _Iter> void update_density(_Iter _b, _Iter _e, auto _getter = [](_Iter _i) -> bound_type { return *_i; }) {
         _density.clear();
         for (_Iter _i = _b; _i != _e; ++_i) {
             _density.push_back(_getter(_i) + ((_density.empty() ? 0 : _density.back())));
         }
     }
-private:
-    template <typename... _Bounds> void _M_init_density(bound_type _b, _Bounds&&... _bs) {
-        _density.push_back(_b + (_density.empty() ? 0 : _density.back()));
-        _M_init_density(std::forward<_Bounds>(_bs)...);
+    inline void update_density(std::initializer_list<bound_type> _il) {
+        _density.clear();
+        for (const auto& _i : _il) {
+            _density.push_back(_i + ((_density.empty() ? 0 : _density.back())));
+        }
     }
-    void _M_init_density() {}
 private:
     random_object<bound_type> _btro;
     std::vector<bound_type> _density; // probability density
