@@ -8,10 +8,8 @@ int main() {
     icy::random_object<const unsigned>::ub = 4;
     icy::random_object<char>::lb = 'a';
     icy::random_object<char>::ub = 'f';
-    icy::random_object<std::string>::lb = 'X';
-    icy::random_object<std::string>::ub = 'Z';
-    icy::random_object<std::string>::llb = 4;
-    icy::random_object<std::string>::ulb = 7;
+    icy::random_object<std::string>::lb = 4;
+    icy::random_object<std::string>::ub = 7;
     icy::random_object<std::pair<const unsigned, std::string>> _ro1;
     for (size_t _i = 0; _i < 10; ++_i) {
         // const std::pair<unsigned, std::string>& _p = _ro1.rand(

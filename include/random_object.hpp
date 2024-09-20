@@ -140,25 +140,25 @@ protected:
     virtual ~random_object_impl() = default;
 public:
     using obj_type = std::string;
-    using bound_type = std::string::value_type;
-    using size_type = std::string::size_type;
-    static inline bound_type lb = 'a'; // lower bound
-    static inline bound_type ub = 'z'; // upper bound
-    static inline size_type llb = 3; // lower length bound
-    static inline size_type ulb = 4; // upper length bound
+    using bound_type = std::string::size_type;
+    using value_type = std::string::value_type;
+    // static inline value_type lvb = 'a'; // lower value bound
+    // static inline value_type uvb = 'z'; // upper value bound
+    static inline bound_type lb = 3; // lower bound (length)
+    static inline bound_type ub = 4; // upper bound (length)
     /**
      * @brief return random string, with elements in [_l, _u] and size in [_ll, _ul)
-     * @param _ll lower length bound
-     * @param _ul upper length bound
-     * @param _l from 0 to 9, from A to Z, from a to z
-     * @param _u from 0 to 9, from A to Z, from a to z
+     * @param _l lower bound (length)
+     * @param _u upper bound (length)
+     * @param _lv from 0 to 9, from A to Z, from a to z
+     * @param _uv from 0 to 9, from A to Z, from a to z
      */
-    auto rand(size_type _ll, size_type _ul, bound_type _l, bound_type _u) const -> obj_type {
+    auto rand(bound_type _l, bound_type _u, value_type _lv, value_type _uv) const -> obj_type {
         assert(_l < _u);
-        size_type _length = _ulro.rand(_ll, _ul);
+        bound_type _length = _bro.rand(_l, _u);
         std::string _str(_length, 0);
         for (auto& _c : _str) {
-            _c = _cro.rand(_l, _u);
+            _c = _vro.rand(_lv, _uv);
         }
         return _str;
     };
@@ -167,18 +167,18 @@ public:
      * @param _ll lower length bound
      * @param _ul upper length bound
      */
-    inline auto rand(size_type _ll, size_type _ul) const -> obj_type {
-        return rand(_ll, _ul, lb, ub);
+    inline auto rand(bound_type _ll, bound_type _ul) const -> obj_type {
+        return rand(_ll, _ul, random_object<value_type>::lb, random_object<value_type>::ub);
     };
     /**
      * @brief return random string
      */
     inline auto rand() const -> obj_type {
-        return rand(llb, ulb, lb, ub);
+        return rand(lb, ub);
     };
 private:
-    random_object<size_type> _ulro;
-    random_object<bound_type> _cro;
+    random_object<value_type> _vro;
+    random_object<bound_type> _bro;
 };
 
 
