@@ -11,19 +11,18 @@
 namespace icy {
 
 namespace {
-constexpr size_t _s_percentage_base = 100ul;
 constexpr char _s_characters[] = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
-}
-
-template <typename _Tp> inline auto bound(const _Tp& _x, const _Tp& _b1, const _Tp& _b2) -> const _Tp& {
-    return std::min(std::max(_x, std::min(_b1, _b2)), std::max(_b1, _b2));
-}
 inline size_t _S_diff_to_0(char _c) {
     if ('0' <= _c && _c <= '9') return _c - '0';
     else if ('A' <= _c && _c <= 'Z') return _c - 'A' + 10;
     else if ('a' <= _c && _c <= 'z') return _c - 'a' + 36;
     else return sizeof(_s_characters);
 }
+template <typename _Tp> inline auto bound(const _Tp& _x, const _Tp& _b1, const _Tp& _b2) -> const _Tp& {
+    return std::min(std::max(_x, std::min(_b1, _b2)), std::max(_b1, _b2));
+}
+}
+
 void _S_init_random_seed();
 
 struct random_object_base;
@@ -33,17 +32,27 @@ template <typename _Tp> struct random_object;
 
 struct random_object_base {
     random_object_base();
+protected:
     virtual ~random_object_base() = default;
+};
+
+template <typename _Tp> struct random_object_impl;
+
+template <typename _Tp> struct random_object : public random_object_impl<typename std::remove_cv<_Tp>::type> {
+    using base = random_object_impl<typename std::remove_cv<_Tp>::type>;
+    virtual ~random_object() = default;
 };
 
 /**
  * @brief partial specialization for integral
  * @tparam _Tp integral type
 */
-template <std::integral _Tp> struct random_object<_Tp> : public random_object_base {
+template <std::integral _Tp> struct random_object_impl<_Tp> : public random_object_base {
+protected:
+    virtual ~random_object_impl() = default;
+public:
     using obj_type = _Tp;
-    using bound_type = _Tp;
-    virtual ~random_object() override = default;
+    using bound_type = obj_type;
     static inline bound_type lb = 0; // lower bound
     static inline bound_type ub = 2; // upper bound
     /**
@@ -60,16 +69,16 @@ template <std::integral _Tp> struct random_object<_Tp> : public random_object_ba
         return rand(lb, ub);
     };
 };
-template <std::integral _Tp> using random_integral_object = random_object<_Tp>;
-
 /**
  * @brief partial specialization for floating point
  * @brief _Tp floating point type
  */
-template <std::floating_point _Tp> struct random_object<_Tp> : public random_object_base {
+template <std::floating_point _Tp> struct random_object_impl<_Tp> : public random_object_base {
+protected:
+    virtual ~random_object_impl() = default;
+public:
     using obj_type = _Tp;
-    using bound_type = _Tp;
-    virtual ~random_object() override = default;
+    using bound_type = obj_type;
     static inline bound_type lb = 0.0; // lower bound
     static inline bound_type ub = 1.0; // upper bound
     /**
@@ -86,15 +95,15 @@ template <std::floating_point _Tp> struct random_object<_Tp> : public random_obj
         return rand(lb, ub);
     };
 };
-template <std::floating_point _Tp> using random_floating_point_object = random_object<_Tp>;
-
 /**
- * @brief partial specialization for char
+ * @brief specialization for char
  */
-template <> struct random_object<char> : public random_object_base {
+template <> struct random_object_impl<char> : public random_object_base {
+protected:
+    virtual ~random_object_impl() = default;
+public:
     using obj_type = char;
     using bound_type = char;
-    virtual ~random_object() override = default;
     static inline bound_type lb = 'a'; // lower bound
     static inline bound_type ub = 'z'; // upper bound
     /**
@@ -116,14 +125,15 @@ template <> struct random_object<char> : public random_object_base {
         return rand(lb, ub);
     };
 };
-
 /**
- * @brief partial specialization for std::string
+ * @brief specialization for std::string
  */
-template <> struct random_object<std::string> : public random_object_base {
+template <> struct random_object_impl<std::string> : public random_object_base {
+protected:
+    virtual ~random_object_impl() = default;
+public:
     using obj_type = std::string;
     using bound_type = std::string::value_type;
-    virtual ~random_object() override = default;
     static inline bound_type lb = 'a'; // lower bound
     static inline bound_type ub = 'z'; // upper bound
     static inline size_t llb = 3; // lower length bound
@@ -163,10 +173,13 @@ private:
     random_object<char> _cro;
 };
 
-template <typename _T1, typename _T2> struct random_object<std::pair<_T1, _T2>> : public random_object_base {
+
+template <typename _T1, typename _T2> struct random_object_impl<std::pair<_T1, _T2>> : public random_object_base {
+protected:
+    virtual ~random_object_impl() = default;
+public:
     using obj_type = std::pair<_T1, _T2>;
     using bound_type = void;
-    virtual ~random_object() override = default;
     template <typename... _Ts1, typename... _Ts2> inline auto
     rand(std::tuple<_Ts1...>&& _ts1, std::tuple<_Ts2...>&& _ts2) const -> obj_type {
         return _M_rand(std::move(_ts1), std::make_index_sequence<sizeof...(_Ts1)>{}, std::move(_ts2), std::make_index_sequence<sizeof...(_Ts2)>{});
@@ -186,8 +199,8 @@ private:
         );
     };
 private:
-    random_object<_T1> _ro1;
-    random_object<_T2> _ro2;
+    random_object<typename std::remove_cv<_T1>::type> _ro1;
+    random_object<typename std::remove_cv<_T2>::type> _ro2;
 };
 
 namespace {
@@ -195,8 +208,10 @@ namespace {
 template <size_t _Index, typename _This, typename... _Rest> struct random_tuple_object_impl;
 
 template <size_t _Index, typename _This, typename... _Rest> struct random_tuple_object_impl : public random_tuple_object_impl<_Index + 1, _Rest...> {
+protected:
+    virtual ~random_tuple_object_impl() = default;
+public:
     using base = random_tuple_object_impl<_Index + 1, _Rest...>;
-    virtual ~random_tuple_object_impl() override = default;
     template <typename... _Ts, typename... _Rests> inline auto make_tuple(std::tuple<_Ts...>&& _ts, _Rests&&... _rts) const -> void {
         base::make_tuple(std::forward<_Rests>(_rts)...);
         _tuple = std::tuple_cat(
@@ -215,10 +230,12 @@ private:
 protected:
     mutable std::tuple<_This, _Rest...> _tuple;
 private:
-    random_object<_This> _ro;
+    random_object<typename std::remove_cv<_This>::type> _ro;
 };
 template <size_t _Index, typename _This> struct random_tuple_object_impl<_Index, _This> : public random_object_base {
-    virtual ~random_tuple_object_impl() override = default;
+protected:
+    virtual ~random_tuple_object_impl() = default;
+public:
     template <typename... _Ts> inline auto make_tuple(std::tuple<_Ts...>&& _ts) const -> void {
         _tuple = std::make_tuple(_M_rand(std::move(_ts), std::make_index_sequence<sizeof...(_Ts)>{}));
     };
@@ -232,16 +249,18 @@ private:
 protected:
     mutable std::tuple<_This> _tuple;
 private:
-    random_object<_This> _ro;
+    random_object<typename std::remove_cv<_This>::type> _ro;
 };
 
 }
 
-template <typename... _Ts> struct random_object<std::tuple<_Ts...>> : public random_tuple_object_impl<0, _Ts...> {
+template <typename... _Ts> struct random_object_impl<std::tuple<_Ts...>> : public random_tuple_object_impl<0, _Ts...> {
+protected:
+    virtual ~random_object_impl() = default;
+public:
     using obj_type = std::tuple<_Ts...>;
     using bound_type = void;
     using base = random_tuple_object_impl<0, _Ts...>;
-    virtual ~random_object() override = default;
     template <typename... _Tts> auto rand(_Tts&&... _tts) const -> obj_type {
         base::make_tuple(std::forward<_Tts>(_tts)...);
         return base::_tuple;
@@ -252,10 +271,12 @@ template <typename... _Ts> struct random_object<std::tuple<_Ts...>> : public ran
     };
 };
 
+
+
 template <> struct random_object<void> : public random_object_base {
     using object_type = size_t;
     using bound_type = double;
-    virtual ~random_object() override = default;
+    virtual ~random_object() = default;
     template <typename... _Bounds> random_object(_Bounds&&... _bs) {
         _density.clear();
         _M_init_density(std::forward<_Bounds>(_bs)...);
