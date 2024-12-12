@@ -4,7 +4,7 @@ project(usage)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_BUILD_TYPE "Debug")
 
-list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/../../cmake)
+list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake)
 
 macro(add_third_libraries lib_name)
     message(STATUS "add third library: " ${lib_name})
@@ -36,7 +36,6 @@ target_include_directories(${PROJECT_NAME}
 set(THIRD_LIB_NAME container_wrapper)
 find_library(third_lib_${THIRD_LIB_NAME} ${THIRD_LIB_NAME} ../../lib)
 if (third_lib_${THIRD_LIB_NAME})
-    message(STATUS "lib: " ${third_lib_${THIRD_LIB_NAME}})
     target_link_libraries(${PROJECT_NAME}
         PUBLIC ${third_lib_${THIRD_LIB_NAME}}
     )
