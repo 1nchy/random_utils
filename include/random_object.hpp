@@ -125,7 +125,7 @@ public:
     /**
      * @brief unset global lower and upper bound
      */
-    static void static_unbound(bound_type _l, bound_type _u) { _s_global_bound = false; }
+    static void static_unbound() { _s_global_bound = false; }
 private:
     bound_type _lb = 0.0; // lower bound
     bound_type _ub = 1.0; // upper bound
