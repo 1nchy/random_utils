@@ -315,7 +315,8 @@ public:
     using bound_type = void;
     template <typename... _Ts1, typename... _Ts2> inline void
     bound(std::tuple<_Ts1...>&& _ts1, std::tuple<_Ts2...>&& _ts2) {
-        _M_bound(std::move(_ts1), std::make_index_sequence<sizeof...(_Ts1)>{}, std::move(_ts2), std::make_index_sequence<sizeof...(_Ts2)>{});
+        _M_bound1(std::move(_ts1), std::make_index_sequence<sizeof...(_Ts1)>{});
+        _M_bound2(std::move(_ts2), std::make_index_sequence<sizeof...(_Ts2)>{});
     }
     template <typename... _Ts1, typename... _Ts2> inline auto
     rand(std::tuple<_Ts1...>&& _ts1, std::tuple<_Ts2...>&& _ts2) const -> obj_type {
@@ -335,14 +336,16 @@ private:
             _ro2.rand(std::forward<_Ts2>(std::get<_N2>(_ts2))...)
         );
     };
-    template <typename... _Ts1, size_t... _N1, typename... _Ts2, size_t... _N2> void
-    _M_bound(
-        std::tuple<_Ts1...>&& _ts1, std::index_sequence<_N1...>,
-        std::tuple<_Ts2...>&& _ts2, std::index_sequence<_N2...>
-    ) {
+    template <typename... _Ts1, size_t... _N1> requires (sizeof...(_Ts1) != 0) inline void
+    _M_bound1(std::tuple<_Ts1...>&& _ts1, std::index_sequence<_N1...>) {
         _ro1.bound(std::forward<_Ts1>(std::get<_N1>(_ts1))...);
+    };
+    inline void _M_bound1(...) {}
+    template <typename... _Ts2, size_t... _N2> requires (sizeof...(_Ts2) != 0) inline void
+    _M_bound2(std::tuple<_Ts2...>&& _ts2, std::index_sequence<_N2...>) {
         _ro2.bound(std::forward<_Ts2>(std::get<_N2>(_ts2))...);
     };
+    inline void _M_bound2(...) {}
 private:
     random_object<_T1> _ro1;
     random_object<_T2> _ro2;
@@ -358,7 +361,7 @@ protected:
     random_tuple_object_impl() = default;
     random_tuple_object_impl(uint_fast32_t _seed) : _ro(_seed), base(_seed) {}
     virtual ~random_tuple_object_impl() = default;
-public:
+protected:
     template <typename... _Ts, typename... _Rests> inline auto make_tuple(std::tuple<_Ts...>&& _ts, _Rests&&... _rts) const -> void {
         base::make_tuple(std::forward<_Rests>(_rts)...);
         _tuple = std::tuple_cat(
@@ -374,13 +377,20 @@ public:
         base::bound(std::forward<_Rests>(_rts)...);
         _M_bound(std::move(_ts), std::make_index_sequence<sizeof...(_Ts)>{});
     }
+    template <size_t _I, typename... _Bs> requires (_I == _Index) inline void bound(std::tuple<_Bs...>&& _bs) {
+        _M_bound(std::move(_bs), std::make_index_sequence<sizeof...(_Bs)>{});
+    }
+    template <size_t _I, typename... _Bs> requires (_I > _Index) inline void bound(std::tuple<_Bs...>&& _bs) {
+        base::template bound<_I>(std::move(_bs));
+    }
 private:
     template <typename... _Ts, size_t... _N> inline auto _M_rand(std::tuple<_Ts...>&& _ts, std::index_sequence<_N...>) const -> _This {
         return _ro.rand(std::forward<_Ts>(std::get<_N>(_ts))...);
     }
-    template <typename... _Ts, size_t... _N> inline void _M_bound(std::tuple<_Ts...>&& _ts, std::index_sequence<_N...>) {
+    template <typename... _Ts, size_t... _N> requires (sizeof...(_Ts) != 0) inline void _M_bound(std::tuple<_Ts...>&& _ts, std::index_sequence<_N...>) {
         return _ro.bound(std::forward<_Ts>(std::get<_N>(_ts))...);
     }
+    inline void _M_bound(...) {}
 protected:
     mutable std::tuple<_This, _Rest...> _tuple;
 private:
@@ -401,13 +411,18 @@ public:
     template <typename... _Ts> inline void bound(std::tuple<_Ts...>&& _ts) {
         _M_bound(std::move(_ts), std::make_index_sequence<sizeof...(_Ts)>{});
     }
+    template <size_t _I, typename... _Bs> requires (_I == _Index) inline void bound(std::tuple<_Bs...>&& _bs) {
+        _M_bound(std::move(_bs), std::make_index_sequence<sizeof...(_Bs)>{});
+    }
+    // template <size_t _I, typename... _Bs> inline void bound(std::tuple<_Bs...>&& _bs) {}
 private:
     template <typename... _Ts, size_t... _N> inline auto _M_rand(std::tuple<_Ts...>&& _ts, std::index_sequence<_N...>) const -> _This {
         return _ro.rand(std::forward<_Ts>(std::get<_N>(_ts))...);
     }
-    template <typename... _Ts, size_t... _N> inline void _M_bound(std::tuple<_Ts...>&& _ts, std::index_sequence<_N...>) {
+    template <typename... _Ts, size_t... _N> requires (sizeof...(_Ts) != 0) inline void _M_bound(std::tuple<_Ts...>&& _ts, std::index_sequence<_N...>) {
         return _ro.bound(std::forward<_Ts>(std::get<_N>(_ts))...);
     }
+    inline void _M_bound(...) {}
 protected:
     mutable std::tuple<_This> _tuple;
 private:
@@ -431,6 +446,9 @@ public:
     }
     template <typename... _Tts> void bound(_Tts&&... _tts) {
         base::bound(std::forward<_Tts>(_tts)...);
+    }
+    template <size_t _I, typename... _Bs> void bound(std::tuple<_Bs...>&& _bs) {
+        base::template bound<_I>(std::move(_bs));
     }
     auto rand() const -> obj_type {
         base::make_tuple();
