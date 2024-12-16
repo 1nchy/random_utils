@@ -16,6 +16,9 @@
 !/example
 !/example/*
 
+!/test
+!/test/*
+
 !/.github
 !/.github/workflows
 !/.github/workflows/release.yml
