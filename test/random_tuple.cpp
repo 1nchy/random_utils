@@ -1,6 +1,8 @@
 #include "random_object.hpp"
 #include "container_wrapper.hpp"
 
+#include "main.hpp"
+
 #include <tuple>
 #include <string>
 
@@ -18,12 +20,12 @@ int main() {
     for (size_t _i = 0; _i != _N; ++_i) {
         const auto _p = _ro.rand();
         const auto _u = std::get<0>(_p);
-        assert(2 <= _u && _u < 4);
+        icy_assert(2 <= _u && _u < 4);
         const auto _f = std::get<1>(_p);
-        assert(-1.0 <= _f && _f <= 0.0);
+        icy_assert(-1.0 <= _f && _f <= 0.0);
         const auto _s = std::get<2>(_p);
-        assert(3 <= _s.size() && _s.size() < 7);
-        assert(std::all_of(_s.cbegin(), _s.cend(), [](char _c) {
+        icy_assert(3 <= _s.size() && _s.size() < 7);
+        icy_assert(std::all_of(_s.cbegin(), _s.cend(), [](char _c) {
             return 'a' <= _c && _c <= 'f';
         }));
     }
@@ -37,7 +39,7 @@ int main() {
     for (size_t _i = 0; _i != _N; ++_i) {
         const auto _p = _ro.rand();
         const auto _c = std::get<0>(_p);
-        assert('a' <= _c && _c <= 'e');
+        icy_assert('a' <= _c && _c <= 'e');
     }
 }
     return 0;

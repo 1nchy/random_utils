@@ -1,5 +1,7 @@
 #include "random_object.hpp"
 
+#include "main.hpp"
+
 #include <utility>
 
 constexpr unsigned _N = 100;
@@ -18,14 +20,14 @@ int main() {
     );
     for (size_t _i = 0; _i != _N; ++_i) {
         const auto _r = _ro.rand();
-        assert( 1<= _r.first && _r.first <= 3);
-        assert(isdigit(_r.second));
+        icy_assert( 1<= _r.first && _r.first <= 3);
+        icy_assert(isdigit(_r.second));
     }
     icy::random_object<char>::static_unbound();
     for (size_t _i = 0; _i != _N; ++_i) {
         const auto _r = _ro.rand();
-        assert( 1<= _r.first && _r.first <= 3);
-        assert('x' <= _r.second <= 'z');
+        icy_assert( 1<= _r.first && _r.first <= 3);
+        icy_assert('x' <= _r.second && _r.second <= 'z');
     }
 }
     return 0;
