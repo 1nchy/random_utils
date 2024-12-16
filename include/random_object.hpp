@@ -489,31 +489,46 @@ public:
      * @brief return random unsigned long for probability distribution given in constructor
      */
     auto rand() const -> object_type {
-        if (_density.empty()) return 0;
-        return std::lower_bound(_density.cbegin(), _density.cend(), _btro.rand(0, _density.back())) - _density.cbegin();
+        if (_distribution.empty()) return 0;
+        return std::lower_bound(_distribution.cbegin(), _distribution.cend(), _btro.rand(0, _distribution.back())) - _distribution.cbegin();
     }
     /**
      * @brief update probability density
      * @tparam _Iter any iterator
      * @param _b begin
      * @param _e end
-     * @param _getter method to get value from iterator, operator*(_Iter)->bound_type by default
      */
-    template <typename _Iter> void update_density(_Iter _b, _Iter _e, auto _getter = [](_Iter _i) -> bound_type { return *_i; }) {
-        _density.clear();
+    template <typename _Iter> void density(_Iter _b, _Iter _e) {
+        _distribution.clear();
         for (_Iter _i = _b; _i != _e; ++_i) {
-            _density.push_back(_getter(_i) + ((_density.empty() ? 0 : _density.back())));
+            _distribution.push_back(*_i + ((_distribution.empty() ? 0 : _distribution.back())));
         }
     }
-    inline void update_density(std::initializer_list<bound_type> _il) {
-        _density.clear();
-        for (const auto& _i : _il) {
-            _density.push_back(_i + ((_density.empty() ? 0 : _density.back())));
+    /**
+     * @brief update probability density
+     * @tparam _Iter any iterator
+     * @param _b begin
+     * @param _e end
+     * @param _getter method to get value from iterator
+     */
+    template <typename _Iter> void density(_Iter _b, _Iter _e, std::function<bound_type(_Iter)> _getter) {
+        _distribution.clear();
+        for (_Iter _i = _b; _i != _e; ++_i) {
+            _distribution.push_back(_getter(_i) + ((_distribution.empty() ? 0 : _distribution.back())));
         }
+    }
+    inline void density(std::initializer_list<bound_type> _il) {
+        _distribution.clear();
+        for (const auto& _i : _il) {
+            _distribution.push_back(_i + ((_distribution.empty() ? 0 : _distribution.back())));
+        }
+    }
+    const auto& distribution() const {
+        return _distribution;
     }
 private:
     random_object<bound_type> _btro;
-    std::vector<bound_type> _density; // probability density
+    std::vector<bound_type> _distribution; // probability distribution
 };
 
 

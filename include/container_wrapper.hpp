@@ -365,7 +365,7 @@ call(const std::string& _k, _Args&&... _args) -> _R {
     throw std::invalid_argument("_R or sizeof...(_Args)");
 };
 template <typename _Tp> auto wrapper<_Tp>::run(const size_t _n) -> void {
-    _vro.update_density(_dist.cbegin(), _dist.cend(), [](decltype(_dist)::const_iterator _i) {
+    _vro.density(_dist.cbegin(), _dist.cend(), [](decltype(_dist)::const_iterator _i) {
         return _i->first;
     });
     for (size_t _i = 0; _i != _n; ++_i) {
