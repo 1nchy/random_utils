@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.26)
-project(container_wrapper)
+project(random_utils)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_BUILD_TYPE "Release")

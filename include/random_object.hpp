@@ -511,7 +511,7 @@ public:
      * @param _e end
      * @param _getter method to get value from iterator
      */
-    template <typename _Iter> void density(_Iter _b, _Iter _e, std::function<bound_type(_Iter)> _getter) {
+    template <typename _Iter> void density(_Iter _b, _Iter _e, std::function<bound_type(_Iter)>&& _getter) {
         _distribution.clear();
         for (_Iter _i = _b; _i != _e; ++_i) {
             _distribution.push_back(_getter(_i) + ((_distribution.empty() ? 0 : _distribution.back())));
