@@ -10,6 +10,7 @@ public:
     void light_on();
     void light_out();
     bool light() const;
+    void fix();
     void fix(size_t _l);
     size_t remains() const;
     void sweep();

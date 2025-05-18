@@ -11,7 +11,8 @@ int main() {
     _rcb.enroll("light_on", &bulb::light_on, 3.0);
     _rcb.enroll("light_out", &bulb::light_out, 3.0);
     _rcb.enroll("light", &bulb::light, 1.0);
-    _rcb.enroll("fix", &bulb::fix, 0.5);
+    _rcb.enroll("fix", static_cast<void(bulb::*)()>(&bulb::fix), 0.5);
+    _rcb.enroll("fix2", static_cast<void(bulb::*)(size_t)>(&bulb::fix), 0.5);
     _rcb.enroll("remains", &bulb::remains, 1.0);
     _rcb.push_callback(&bulb::sweep);
     _rcb.push_callback(&bulb::check);

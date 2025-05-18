@@ -17,6 +17,9 @@ auto bulb::light_out() -> void {
 auto bulb::light() const -> bool {
     return _light;
 }
+auto bulb::fix() -> void {
+    if (_count != 0) --_count;
+}
 auto bulb::fix(size_t _l) -> void {
     _count = std::min(_count, _l);
 }

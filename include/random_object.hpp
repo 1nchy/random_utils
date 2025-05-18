@@ -10,6 +10,7 @@
 #include <functional>
 #include <random>
 #include <cstring>
+#include <stdexcept>
 
 namespace icy {
 
