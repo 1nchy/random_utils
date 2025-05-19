@@ -11,6 +11,9 @@ struct kid {
 public:
     static constexpr unsigned MAX_ENERGY = 10;
     kid() = default;
+    kid(const kid& _rhs) : _args(_rhs._args), _result(_rhs._result), _energy(_rhs._energy) {};
+    kid(kid&&) {};
+    ~kid() = default;
     auto add(int _x) -> int {
         _args.push_back(_x);
         _result = _x + bias(0);
@@ -69,8 +72,10 @@ int main() {
     _rc.enroll("add2", static_cast<int(kid::*)(int,int)>(&kid::add));
     _rc.enroll("add3", static_cast<int(kid::*)(int,int,int)>(&kid::add));
     _rc.enroll("rest", &kid::rest);
-    _rc.push_callback(&kid::prepare);
+    _rc.enroll_copy_construtor();
+    _rc.enroll_move_construtor();
     _rc.push_callback(&kid::check);
+    _rc.push_callback(&kid::prepare);
     for (unsigned _i = 0; _i < _L; ++_i) {
         _rc.run(_N);
     }
