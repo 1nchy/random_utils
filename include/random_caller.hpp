@@ -108,6 +108,9 @@ template <typename _Container, bool _Const, typename _R, typename... _Args> stru
     using container_pointer = obj_type*;
     using method_type = std::conditional<_Const, _R(obj_type::*)(_Args...)const, _R(obj_type::*)(_Args...)>::type;
     callable_method(container_pointer& _c, method_type _p) : _object(_c), _call(_p) {}
+    template <typename... _Tts> callable_method(container_pointer& _c, method_type _p, _Tts&&... _tts) : _object(_c), _call(_p) {
+        // base::bound(std::forward<_Tts>(_tts)...);
+    }
     virtual ~callable_method() override = default;
     auto operator()() -> void override {
         base::operator()();
@@ -160,6 +163,9 @@ template <typename _R, typename... _Args> struct callable_function : public call
     using base = callable_impl<0, _Args...>;
     using function_type = _R(*)(_Args...);
     callable_function(function_type _p) : _call(_p) {}
+    template <typename... _Tts> callable_function(function_type _p, _Tts&&... _tts) : _call(_p) {
+
+    }
     virtual ~callable_function() override = default;
     auto operator()() -> void override {
         base::operator()();
@@ -298,6 +304,10 @@ public:
     enroll(const std::string& _k, _R(_Tp::*_p)(_Args...), double _weight = 1.0) -> bool;
     template <typename _R, typename... _Args> auto
     enroll(const std::string& _k, _R(_Tp::*_p)(_Args...)const, double _weight = 1.0) -> bool;
+    template <typename _R, typename... _Args, typename... _Tts> auto
+    enroll(const std::string& _k, _R(_Tp::*_p)(_Args...), double _weight, _Tts&&... _tts) -> bool;
+    template <typename _R, typename... _Args, typename... _Tts> auto
+    enroll(const std::string& _k, _R(_Tp::*_p)(_Args...)const, double _weight, _Tts&&... _tts) -> bool;
     auto enroll_copy_construtor(double _weight = 1.0) -> bool;
     auto enroll_move_construtor(double _weight = 1.0) -> bool;
     template <typename _R, typename... _Args> auto
@@ -394,6 +404,22 @@ template <typename _Tp> template <typename _R, typename... _Args> auto random_ca
 enroll(const std::string& _k, _R(_Tp::*_p)(_Args...)const, double _weight) -> bool {
     if (this->_callables.contains(_k)) { return false; }
     auto _ptr = std::make_shared<callable_method<obj_type, true, _R, _Args...>>(std::ref(_object), _p);
+    this->_callables[_k] = _ptr;
+    this->_distribution.emplace_back(_weight, _k);
+    return true;
+};
+template <typename _Tp> template <typename _R, typename... _Args, typename... _Tts> auto random_caller<_Tp>::
+enroll(const std::string& _k, _R(_Tp::*_p)(_Args...), double _weight, _Tts&&... _tts) -> bool {
+    if (this->_callables.contains(_k)) { return false; }
+    auto _ptr = std::make_shared<callable_method<obj_type, false, _R, _Args...>>(std::ref(_object), _p, std::forward<_Tts>(_tts)...);
+    this->_callables[_k] = _ptr;
+    this->_distribution.emplace_back(_weight, _k);
+    return true;
+};
+template <typename _Tp> template <typename _R, typename... _Args, typename... _Tts> auto random_caller<_Tp>::
+enroll(const std::string& _k, _R(_Tp::*_p)(_Args...)const, double _weight, _Tts&&... _tts) -> bool {
+    if (this->_callables.contains(_k)) { return false; }
+    auto _ptr = std::make_shared<callable_method<obj_type, true, _R, _Args...>>(std::ref(_object), _p, std::forward<_Tts>(_tts)...);
     this->_callables[_k] = _ptr;
     this->_distribution.emplace_back(_weight, _k);
     return true;

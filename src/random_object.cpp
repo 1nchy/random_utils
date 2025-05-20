@@ -18,19 +18,19 @@ auto random_object_impl<bool>::rand() const -> obj_type {
     return rand(count(), probability());
 }
 auto random_object_impl<bool>::count() const -> obj_type {
-    return (_s_global_bound ? _s_n : _n);
+    return (_local_bound ? _n : _s_n);
 }
 auto random_object_impl<bool>::probability() const -> bound_type {
-    return (_s_global_bound ? _s_p : _p);
+    return (_local_bound ? _p : _s_p);
 }
 void random_object_impl<bool>::bound(obj_type _n, bound_type _p) {
-    this->_n = _n; this->_p = _p;
+    this->_n = _n; this->_p = _p; _local_bound = true;
+}
+void random_object_impl<bool>::unbound() {
+    _local_bound = false;
 }
 void random_object_impl<bool>::static_bound(obj_type _n, bound_type _p) {
-    _s_n = _n; _s_p = _p; _s_global_bound = true;
-}
-void random_object_impl<bool>::static_unbound() {
-    _s_global_bound = false;
+    _s_n = _n; _s_p = _p;
 }
 
 
@@ -39,23 +39,23 @@ random_object_impl<char>::random_object_impl() : _rd(), _gen(_rd()) {}
 random_object_impl<char>::random_object_impl(uint_fast32_t _seed) : _gen(_seed) {}
 void random_object_impl<char>::bound(const std::string& _s) {
     _collection = _M_range(_s);
+    _local_bound = true;
 }
 void random_object_impl<char>::bound(bound_type _l, bound_type _u) {
     _collection = _M_range(_l, _u);
+    _local_bound = true;
+}
+void random_object_impl<char>::unbound() {
+    _local_bound = false;
 }
 void random_object_impl<char>::static_bound(const std::string& _s) {
     _s_collection = _M_range(_s);
-    _s_global_bound = true;
 }
 void random_object_impl<char>::static_bound(bound_type _l, bound_type _u) {
     _s_collection = _M_range(_l, _u);
-    _s_global_bound = true;
-}
-void random_object_impl<char>::static_unbound() {
-    _s_global_bound = false;
 }
 auto random_object_impl<char>::collection() const -> const std::string& {
-    return (_s_global_bound ? _s_collection : _collection);
+    return (_local_bound ? _collection : _s_collection);
 }
 auto random_object_impl<char>::rand(const std::string& _s) const -> obj_type {
     const auto& _r = _M_range(_s);
@@ -125,6 +125,10 @@ void random_object_impl<std::string>::bound(bound_type _l, bound_type _u, const 
     _bro.bound(_l, _u);
     _vro.bound(_s);
 }
+void random_object_impl<std::string>::unbound() {
+    _bro.unbound();
+    _vro.unbound();
+}
 void random_object_impl<std::string>::static_bound(bound_type _l, bound_type _u) {
     random_object<bound_type>::static_bound(_l, _u);
 }
@@ -134,10 +138,6 @@ void random_object_impl<std::string>::static_bound(const std::string& _s) {
 void random_object_impl<std::string>::static_bound(bound_type _l, bound_type _u, const std::string& _s) {
     random_object<bound_type>::static_bound(_l, _u);
     random_object<value_type>::static_bound(_s);
-}
-void random_object_impl<std::string>::static_unbound() {
-    random_object<bound_type>::static_unbound();
-    random_object<value_type>::static_unbound();
 }
 auto random_object_impl<std::string>::rand(bound_type _l, bound_type _u, const std::string& _s) const -> obj_type {
     return _M_rand(_bro.rand(_l, _u), [this, _s]() {

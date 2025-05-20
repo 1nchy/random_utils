@@ -58,30 +58,30 @@ public:
      * @brief return random integral
      */
     inline auto rand() const -> obj_type { return rand(lower_bound(), upper_bound()); }
-    inline auto lower_bound() const -> bound_type { return (_s_global_bound ? _s_lb : _lb); }
-    inline auto upper_bound() const -> bound_type { return (_s_global_bound ? _s_ub : _ub); }
+    inline auto lower_bound() const -> bound_type { return (_local_bound ? _lb : _s_lb); }
+    inline auto upper_bound() const -> bound_type { return (_local_bound ? _ub : _s_ub); }
     /**
-     * @brief set lower and upper bound
+     * @brief set local lower and upper bound
      * @param _l lower bound
      * @param _u upper bound
      */
-    void bound(bound_type _l, bound_type _u) { assert(_l < _u); _lb = _l; _ub = _u; }
+    void bound(bound_type _l, bound_type _u) { assert(_l < _u); _lb = _l; _ub = _u; _local_bound = true; }
+    /**
+     * @brief unset local bound
+     */
+    void unbound() { _local_bound = false; }
     /**
      * @brief set global lower and upper bound
      * @param _l lower bound
      * @param _u upper bound
      */
-    static void static_bound(bound_type _l, bound_type _u) { assert(_l < _u); _s_lb = _l; _s_ub = _u; _s_global_bound = true; }
-    /**
-     * @brief unset global lower and upper bound
-     */
-    static void static_unbound() { _s_global_bound = false; }
+    static void static_bound(bound_type _l, bound_type _u) { assert(_l < _u); _s_lb = _l; _s_ub = _u; }
 private:
     bound_type _lb = 0; // lower bound
     bound_type _ub = 2; // upper bound
+    bool _local_bound = false;
     inline static bound_type _s_lb = 0; // static lower bound
-    inline static bound_type _s_ub = 0; // static upper bound
-    inline static bool _s_global_bound = false;
+    inline static bound_type _s_ub = 2; // static upper bound
     std::random_device _rd;
     mutable std::mt19937 _gen;
 };
@@ -109,30 +109,30 @@ public:
      * @brief return random floating point
      */
     inline auto rand() const -> obj_type { return rand(lower_bound(), upper_bound()); }
-    inline auto lower_bound() const -> bound_type { return (_s_global_bound ? _s_lb : _lb); }
-    inline auto upper_bound() const -> bound_type { return (_s_global_bound ? _s_ub : _ub); }
+    inline auto lower_bound() const -> bound_type { return (_local_bound ? _lb : _s_lb); }
+    inline auto upper_bound() const -> bound_type { return (_local_bound ? _ub : _s_ub); }
     /**
-     * @brief set lower and upper bound
+     * @brief set local lower and upper bound
      * @param _l lower bound
      * @param _u upper bound
      */
-    inline void bound(bound_type _l, bound_type _u) { assert(_l < _u); _lb = _l; _ub = _u; }
+    inline void bound(bound_type _l, bound_type _u) { assert(_l < _u); _lb = _l; _ub = _u; _local_bound = true; }
+    /**
+     * @brief unset local bound
+     */
+    void unbound() { _local_bound = false; }
     /**
      * @brief set global lower and upper bound
      * @param _l lower bound
      * @param _u upper bound
      */
-    static void static_bound(bound_type _l, bound_type _u) { assert(_l < _u); _s_lb = _l; _s_ub = _u; _s_global_bound = true; }
-    /**
-     * @brief unset global lower and upper bound
-     */
-    static void static_unbound() { _s_global_bound = false; }
+    static void static_bound(bound_type _l, bound_type _u) { assert(_l < _u); _s_lb = _l; _s_ub = _u; }
 private:
     bound_type _lb = 0.0; // lower bound
     bound_type _ub = 1.0; // upper bound
+    bool _local_bound = false;
     inline static bound_type _s_lb = 0.0; // static lower bound
     inline static bound_type _s_ub = 1.0; // static upper bound
-    inline static bool _s_global_bound = false;
     std::random_device _rd;
     mutable std::mt19937 _gen;
 };
@@ -160,14 +160,14 @@ public:
     auto count() const -> obj_type;
     auto probability() const -> bound_type;
     void bound(obj_type _n, bound_type _p);
+    void unbound();
     static void static_bound(obj_type _n, bound_type _p);
-    static void static_unbound();
 private:
     obj_type _n = 1u;
     bound_type _p = 0.5;
+    bool _local_bound = false;
     inline static obj_type _s_n = 1u;
     inline static bound_type _s_p = 0.5;
-    inline static bool _s_global_bound = false;
     std::random_device _rd;
     mutable std::mt19937 _gen;
 };
@@ -183,16 +183,20 @@ public:
     using obj_type = char;
     using bound_type = char;
     /**
-     * @brief set character bound
+     * @brief set local character bound
      * @param _s the collection of characters, support for range (such as "0-9a-f")
      */
     void bound(const std::string& _s);
     /**
-     * @brief set character bound
+     * @brief set local character bound
      * @param _l from 0 to 9, from A to Z, from a to z
      * @param _u from 0 to 9, from A to Z, from a to z
      */
     void bound(bound_type _l, bound_type _u);
+    /**
+     * @brief unset local bound
+     */
+    void unbound();
     /**
      * @brief set global character bound
      * @param _s the collection of characters, support for range (such as "0-9a-f")
@@ -204,10 +208,6 @@ public:
      * @param _u from 0 to 9, from A to Z, from a to z
      */
     static void static_bound(bound_type _l, bound_type _u);
-    /**
-     * @brief unset global character bound
-     */
-    static void static_unbound();
     /**
      * @brief return the collection of characters
      */
@@ -237,8 +237,8 @@ private:
     std::random_device _rd;
     mutable std::mt19937 _gen;
     std::string _collection = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+    bool _local_bound = false;
     inline static std::string _s_collection = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
-    inline static bool _s_global_bound = false;
     static constexpr char _digital_alphabets[] = "0123456789";
     static constexpr char _upper_alphabets[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
     static constexpr char _lower_alphabets[] = "abcdefghijklmnopqrstuvwxyz";
@@ -256,17 +256,21 @@ public:
     using bound_type = std::string::size_type;
     using value_type = std::string::value_type;
     /**
-     * @brief set length bound
+     * @brief set local length bound
      */
     void bound(bound_type _l, bound_type _u);
     /**
-     * @brief set character range
+     * @brief set local character range
      */
     void bound(const std::string& _s);
     /**
-     * @brief set length bound and character range
+     * @brief set local length bound and character range
      */
     void bound(bound_type _l, bound_type _u, const std::string& _s);
+    /**
+     * @brief unset local bound
+     */
+    void unbound();
     /**
      * @brief set global length bound
      */
@@ -276,10 +280,9 @@ public:
      */
     static void static_bound(const std::string& _s);
     /**
-     * @brief unset global length bound and character range
+     * @brief set global length bound and character range
      */
     static void static_bound(bound_type _l, bound_type _u, const std::string& _s);
-    static void static_unbound();
     /**
      * @brief return random string, with elements in [_l, _u] and size in [_ll, _ul)
      * @param _l lower bound (length)
@@ -319,6 +322,7 @@ public:
         _M_bound1(std::move(_ts1), std::make_index_sequence<sizeof...(_Ts1)>{});
         _M_bound2(std::move(_ts2), std::make_index_sequence<sizeof...(_Ts2)>{});
     }
+    void unbound() { _ro1.unbound(); _ro2.unbound(); }
     template <typename... _Ts1, typename... _Ts2> inline auto
     rand(std::tuple<_Ts1...>&& _ts1, std::tuple<_Ts2...>&& _ts2) const -> obj_type {
         return _M_rand(std::move(_ts1), std::make_index_sequence<sizeof...(_Ts1)>{}, std::move(_ts2), std::make_index_sequence<sizeof...(_Ts2)>{});
@@ -389,6 +393,16 @@ protected:
             throw std::out_of_range("random_object::bound<_I>");
         }
     }
+    inline void unbound() { _ro.unbound(); base::unbound(); }
+    template <size_t _I> requires (_I == _Index) inline void unbound() { _ro.unbound(); }
+    template <size_t _I> requires (_I != _Index) inline void unbound() {
+        if constexpr (_I > _Index) {
+            base::template unbound<_I>();
+        }
+        else {
+            throw std::out_of_range("random_object::unbound<_I>");
+        }
+    }
 private:
     template <typename... _Ts, size_t... _N> inline auto _M_rand(std::tuple<_Ts...>&& _ts, std::index_sequence<_N...>) const -> _This {
         return _ro.rand(std::forward<_Ts>(std::get<_N>(_ts))...);
@@ -422,6 +436,11 @@ public:
     }
     template <size_t _I, typename... _Bs> requires (_I != _Index) inline void bound(_Bs&&... _bs) {
         throw std::out_of_range("random_object::bound<_I>");
+    }
+    inline void unbound() { _ro.unbound(); }
+    template <size_t _I> requires (_I == _Index) inline void unbound() { _ro.unbound(); }
+    template <size_t _I> requires (_I != _Index) inline void unbound() {
+        throw std::out_of_range("random_object::unbound<_I>");
     }
 private:
     template <typename... _Ts, size_t... _N> inline auto _M_rand(std::tuple<_Ts...>&& _ts, std::index_sequence<_N...>) const -> _This {
@@ -468,6 +487,8 @@ public:
     template <size_t _I, typename... _Bs> void bound(_Bs&&... _bs) {
         base::template bound<_I>(std::forward<_Bs>(_bs)...);
     }
+    void unbound() { base::unbound(); }
+    template <size_t _I> void unbound() { base::template unbound<_I>(); }
     auto rand() const -> obj_type {
         base::make_tuple();
         return base::_tuple;

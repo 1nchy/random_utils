@@ -9,7 +9,10 @@ int main() {
     icy::random_caller<kid> _rc;
     icy::random_object<int>::static_bound(0, 10);
     _rc.enroll("add", static_cast<int(kid::*)(int)>(&kid::add));
-    _rc.enroll("add2", static_cast<int(kid::*)(int,int)>(&kid::add));
+    _rc.enroll("add2", static_cast<int(kid::*)(int,int)>(&kid::add), 1.0,
+        std::forward_as_tuple(10, 15),
+        std::forward_as_tuple(20, 25)
+    );
     _rc.enroll("add3", static_cast<int(kid::*)(int,int,int)>(&kid::add));
     _rc.enroll("rest", &kid::rest);
     _rc.enroll_copy_construtor();

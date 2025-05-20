@@ -21,13 +21,13 @@ int main() {
     for (size_t _i = 0; _i != _N; ++_i) {
         const auto _r = _ro.rand();
         EXPECT_TRUE( 1<= _r.first && _r.first <= 3);
-        EXPECT_TRUE('0' <= _r.second && _r.second <= '9');
+        EXPECT_TRUE('x' <= _r.second && _r.second <= 'z');
     }
-    icy::random_object<char>::static_unbound();
+    _ro.unbound();
     for (size_t _i = 0; _i != _N; ++_i) {
         const auto _r = _ro.rand();
-        EXPECT_TRUE( 1<= _r.first && _r.first <= 3);
-        EXPECT_TRUE('x' <= _r.second && _r.second <= 'z');
+        EXPECT_TRUE( 0 <= _r.first && _r.first < 2);
+        EXPECT_TRUE('0' <= _r.second && _r.second <= '9');
     }
     return 0;
 }
