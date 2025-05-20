@@ -262,7 +262,7 @@ public:
      * @brief random operation on the container specific times
      * @param loop the number of operations
      */
-    auto run(const size_t _loop = loop) -> bool;
+    auto run(const size_t _loop = loop, const bool _save = false) -> bool;
     const auto& get_commands() const { return _commands; }
     const auto& get_arguments() const { return _arguments; }
     const auto& get_exception() const { return _exception; }
@@ -351,7 +351,7 @@ template <typename _Tp> auto random_caller_impl<_Tp>::_M_save_commands_and_argum
         _arguments.push_back(_callables.at(_k)->arguments());
     }
 };
-template <typename _Tp> auto random_caller_impl<_Tp>::run(const size_t _loop) -> bool {
+template <typename _Tp> auto random_caller_impl<_Tp>::run(const size_t _loop, const bool _save) -> bool {
     if (_distribution.empty()) { return true; }
     using _Iter = typename decltype(_distribution)::const_iterator;
     _vro.density<_Iter>(_distribution.cbegin(), _distribution.cend(), [](_Iter _i) -> double {
@@ -360,18 +360,20 @@ template <typename _Tp> auto random_caller_impl<_Tp>::run(const size_t _loop) ->
     _commands.clear(); _arguments.clear();
     for (size_t _i = 0; _i != _loop; ++_i) {
         const std::string& _k = _distribution.at(_vro.rand()).second;
-        bool _saved = false;
+        bool _have_saved = false;
         try {
             if (_callables.contains(_k)) {
                 _callables.at(_k)->operator()();
             }
-            _M_save_commands_and_arguments(_k); _saved = true;
+            if (_save) {
+                _M_save_commands_and_arguments(_k); _have_saved = true;
+            }
             for (const auto& _callback : _callbacks) {
                 _callback->operator()();
             }
         }
         catch (const std::exception& _e) {
-            if (!_saved) _M_save_commands_and_arguments(_k);
+            if (!_have_saved) _M_save_commands_and_arguments(_k);
             _exception = _e.what();
             return false;
         }

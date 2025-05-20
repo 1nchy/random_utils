@@ -21,7 +21,8 @@ int main() {
     _rc.push_callback(&kid::show);
     _rc.push_callback(&kid::check);
     _rc.push_callback(&kid::prepare);
-    _rc.run(_N);
+    _rc.run(_N, true);
+    std::cout << "------------------------" << std::endl;
     const size_t _L = _rc.get_commands().size();
     for (size_t _i = 0; _i != _L; ++_i) {
         std::cout << _rc.get_commands()[_i] << _rc.get_arguments()[_i] << std::endl;
