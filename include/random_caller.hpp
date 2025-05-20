@@ -63,8 +63,8 @@ template <typename _Container, bool _Const, typename _R, typename... _Args> stru
 template <typename _R, typename... _Args> struct callable_function;
 template <typename _Container> struct callable_constructor;
 struct virtual_callable {
-    virtual auto operator()() -> void = 0;
     virtual ~virtual_callable() = default;
+    virtual auto operator()() -> void = 0;
     virtual auto arguments() const -> std::string = 0;
 };
 
@@ -96,11 +96,11 @@ public:
 
 template <typename _Container, bool _Const, typename _R, typename... _Args> struct callable_method : public virtual_callable {
     using obj_type = _Container;
-    using container_pointer = obj_type*;
+    using obj_pointer = obj_type*;
     using method_type = std::conditional<_Const, _R(obj_type::*)(_Args...)const, _R(obj_type::*)(_Args...)>::type;
     using tuple_type = typename remove_references<_Args...>::tuple_type;
-    callable_method(container_pointer& _c, method_type _p) : _object(_c), _call(_p) {}
-    template <typename... _Tts> callable_method(container_pointer& _c, method_type _p, _Tts&&... _tts) : _object(_c), _call(_p) {
+    callable_method(obj_pointer& _c, method_type _p) : _object(_c), _call(_p) {}
+    template <typename... _Tts> callable_method(obj_pointer& _c, method_type _p, _Tts&&... _tts) : _object(_c), _call(_p) {
         _rot.bound(std::forward<_Tts>(_tts)...);
     }
     virtual ~callable_method() override = default;
@@ -128,16 +128,16 @@ private:
         (_object->*_call)(std::forward<_Args>(std::get<_N>(_tuple))...);
     }
 private:
-    container_pointer& _object;
+    obj_pointer& _object;
     const method_type _call;
     tuple_type _tuple;
     random_object<tuple_type> _rot;
 };
 template <typename _Container, bool _Const, typename _R> struct callable_method<_Container, _Const, _R> : public virtual_callable {
     using obj_type = _Container;
-    using container_pointer = obj_type*;
+    using obj_pointer = obj_type*;
     using method_type = std::conditional<_Const, _R(obj_type::*)()const, _R(obj_type::*)()>::type;
-    callable_method(container_pointer& _c, method_type _p) : _object(_c), _call(_p) {}
+    callable_method(obj_pointer& _c, method_type _p) : _object(_c), _call(_p) {}
     virtual ~callable_method() override = default;
     auto operator()() -> void override {
         (_object->*_call)();
@@ -149,7 +149,7 @@ template <typename _Container, bool _Const, typename _R> struct callable_method<
         return (_object->*_call)();
     }
 private:
-    container_pointer& _object;
+    obj_pointer& _object;
     const method_type _call;
 };
 
@@ -204,8 +204,8 @@ private:
 
 template <typename _Container> struct callable_constructor : public virtual_callable {
     using obj_type = _Container;
-    using container_pointer = obj_type*;
-    callable_constructor(container_pointer& _c, std::function<void(void)>&& _f) : _object(_c), _func(_f) {}
+    using obj_pointer = obj_type*;
+    callable_constructor(obj_pointer& _c, std::function<void(void)>&& _f) : _object(_c), _func(_f) {}
     virtual ~callable_constructor() override = default;
     void operator()() override {
         _func();
@@ -214,7 +214,7 @@ template <typename _Container> struct callable_constructor : public virtual_call
         return "";
     }
 private:
-    container_pointer& _object;
+    obj_pointer& _object;
     std::function<void(void)> _func;
 };
 
