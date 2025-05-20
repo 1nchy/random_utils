@@ -71,73 +71,67 @@ struct virtual_callable {
 
 namespace {
 
-template <size_t _Index, typename _This, typename... _Rest> struct callable_impl;
+/**
+ * @brief generate random arguments for calling
+ * @details
+ * reference type could not work in `random_object`,
+ * implement `remove_references` to trait type from `_Args...`
+*/
+template <typename _This, typename... _Rest> struct remove_references;
 
-template <size_t _Index, typename _This, typename... _Rest> struct callable_impl : public callable_impl<_Index + 1, _Rest...> {
-    using base = callable_impl<_Index + 1, _Rest...>;
-    using value_type = std::decay<typename std::remove_reference<_This>::type>::type;
-    using tuple_type = tuple_cat_result<value_type, typename base::tuple_type>::type;
-    virtual ~callable_impl() override = default;
-    auto operator()() -> void override {
-        base::operator()();
-        _tuple = std::tuple_cat(std::forward_as_tuple(_ro.rand()), base::_tuple);
-    }
+template <typename _This, typename... _Rest> struct remove_references : public remove_references<_Rest...> {
 protected:
-    tuple_type _tuple;
-private:
-    random_object<value_type> _ro;
+    using value_type = std::decay<typename std::remove_reference<_This>::type>::type;
+public:
+    using tuple_type = tuple_cat_result<value_type, typename remove_references<_Rest...>::tuple_type>::type;
 };
-template <size_t _Index, typename _This> struct callable_impl<_Index, _This> : public virtual_callable {
-    using value_type = std::decay<typename std::remove_reference<_This>::type>::type;
-    using tuple_type = std::tuple<value_type>;
-    virtual ~callable_impl() override = default;
-    auto operator()() -> void override {
-        _tuple = std::make_tuple(_ro.rand());
-    }
+template <typename _This> struct remove_references<_This> {
 protected:
-    tuple_type _tuple;
-private:
-    random_object<value_type> _ro;
+    using value_type = std::decay<typename std::remove_reference<_This>::type>::type;
+public:
+    using tuple_type = std::tuple<value_type>;
 };
 
 }
 
-template <typename _Container, bool _Const, typename _R, typename... _Args> struct callable_method : public callable_impl<0, _Args...> {
-    using base = callable_impl<0, _Args...>;
+template <typename _Container, bool _Const, typename _R, typename... _Args> struct callable_method : public virtual_callable {
     using obj_type = _Container;
     using container_pointer = obj_type*;
     using method_type = std::conditional<_Const, _R(obj_type::*)(_Args...)const, _R(obj_type::*)(_Args...)>::type;
+    using tuple_type = typename remove_references<_Args...>::tuple_type;
     callable_method(container_pointer& _c, method_type _p) : _object(_c), _call(_p) {}
     template <typename... _Tts> callable_method(container_pointer& _c, method_type _p, _Tts&&... _tts) : _object(_c), _call(_p) {
-        // base::bound(std::forward<_Tts>(_tts)...);
+        _rot.bound(std::forward<_Tts>(_tts)...);
     }
     virtual ~callable_method() override = default;
     auto operator()() -> void override {
-        base::operator()();
+        _tuple = _rot.rand();
         /**
          * @details std::apply(_call, std::tuple_cat(std::forward_as_tuple(*_object), base::_tuple));
          * std::apply can't handle reference parameters.
          */
-        invoke_tuple(base::_tuple);
+        invoke_tuple();
     }
     auto arguments() const -> std::string override {
         std::ostringstream _ss;
-        _ss << base::_tuple;
+        _ss << _tuple;
         return _ss.str();
     }
     auto invoke_with_result(_Args&&... _args) -> _R {
         return (_object->*_call)(std::forward<_Args>(_args)...);
     }
 private:
-    template <typename _Tuple> auto invoke_tuple(_Tuple& _tuple) -> void {
-        _M_invoke_tuple(_tuple, std::make_index_sequence<sizeof...(_Args)>{});
+    auto invoke_tuple() -> void {
+        _M_invoke_tuple(std::make_index_sequence<sizeof...(_Args)>{});
     }
-    template <typename _Tuple, size_t... _N> auto _M_invoke_tuple(_Tuple& _tuple, std::index_sequence<_N...>) -> void {
+    template <size_t... _N> auto _M_invoke_tuple(std::index_sequence<_N...>) -> void {
         (_object->*_call)(std::forward<_Args>(std::get<_N>(_tuple))...);
     }
 private:
     container_pointer& _object;
     const method_type _call;
+    tuple_type _tuple;
+    random_object<tuple_type> _rot;
 };
 template <typename _Container, bool _Const, typename _R> struct callable_method<_Container, _Const, _R> : public virtual_callable {
     using obj_type = _Container;
@@ -159,35 +153,37 @@ private:
     const method_type _call;
 };
 
-template <typename _R, typename... _Args> struct callable_function : public callable_impl<0, _Args...> {
-    using base = callable_impl<0, _Args...>;
+template <typename _R, typename... _Args> struct callable_function : public virtual_callable {
     using function_type = _R(*)(_Args...);
+    using tuple_type = typename remove_references<_Args...>::tuple_type;
     callable_function(function_type _p) : _call(_p) {}
     template <typename... _Tts> callable_function(function_type _p, _Tts&&... _tts) : _call(_p) {
-
+        _rot.bound(std::forward<_Tts>(_tts)...);
     }
     virtual ~callable_function() override = default;
     auto operator()() -> void override {
-        base::operator()();
-        invoke_tuple(base::_tuple);
+        _tuple = _rot.rand();
+        invoke_tuple();
     }
     auto arguments() const -> std::string override {
         std::ostringstream _ss;
-        _ss << base::_tuple;
+        _ss << _tuple;
         return _ss.str();
     }
     auto invoke_with_result(_Args&&... _args) -> _R {
         return (*_call)(std::forward<_Args>(_args)...);
     }
 private:
-    template <typename _Tuple> auto invoke_tuple(_Tuple& _tuple) -> void {
-        _M_invoke_tuple(_tuple, std::make_index_sequence<sizeof...(_Args)>{});
+    auto invoke_tuple() -> void {
+        _M_invoke_tuple(std::make_index_sequence<sizeof...(_Args)>{});
     }
-    template <typename _Tuple, size_t... _N> auto _M_invoke_tuple(_Tuple& _tuple, std::index_sequence<_N...>) -> void {
+    template <size_t... _N> auto _M_invoke_tuple(std::index_sequence<_N...>) -> void {
         (*_call)(std::forward<_Args>(std::get<_N>(_tuple))...);
     }
 private:
     const function_type _call;
+    tuple_type _tuple;
+    random_object<tuple_type> _rot;
 };
 template <typename _R> struct callable_function<_R> : public virtual_callable {
     using function_type = _R(*)();

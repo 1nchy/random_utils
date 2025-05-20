@@ -12,12 +12,15 @@ public:
     auto add(int _x) -> int;
     auto add(int _x, int _y) -> int;
     auto add(int _x, int _y, int _z) -> int;
+    auto increment(int& x) -> void;
     auto rest() -> void;
     auto show() const -> void;
     auto prepare() -> void;
     auto check() const -> void;
 private:
     auto bias(unsigned _x) const -> int;
+    auto increase_energy(unsigned) -> void;
+    auto decrease_energy(unsigned) -> void;
 private:
     std::vector<int> _args;
     int _result;
