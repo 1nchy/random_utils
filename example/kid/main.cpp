@@ -21,7 +21,7 @@ int main() {
     _rc.push_callback(&kid::show);
     _rc.push_callback(&kid::check);
     _rc.push_callback(&kid::prepare);
-    _rc.run(_N, true);
+    _rc.run(_N, icy::random_caller<kid>::arguments_mode::EXCEPTION);
     std::cout << "------------------------" << std::endl;
     const size_t _L = _rc.get_commands().size();
     for (size_t _i = 0; _i != _L; ++_i) {

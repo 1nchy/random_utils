@@ -249,8 +249,15 @@ template <typename _Tp> struct random_caller_alloc : public std::allocator<_Tp> 
 };
 
 template <typename _Tp> struct random_caller_impl : public random_caller_alloc<_Tp> {
-    static constexpr size_t loop = 1000000ul;
     using obj_type = _Tp;
+public:
+    static constexpr size_t loop = 1000000ul;
+    enum arguments_mode : unsigned {
+        EXCEPTION = 0x0, // only save arguments if throwing exception
+        CALLBACK = 0x1, // only save callback arguments
+        METHOD = 0x2, // only save method arguments
+        ALL = 0x3, // save all arguments
+    };
 protected:
     random_caller_impl() = default;
 public:
@@ -259,15 +266,17 @@ public:
     virtual ~random_caller_impl() = default;
 public:
     /**
-     * @brief random operation on the container specific times
-     * @param loop the number of operations
+     * @brief random operation of a specific times
+     * @param _loop the number of operations
+     * @param _mode the mode of saving arguments (arguments_mode::EXCEPTION by default)
      */
-    auto run(const size_t _loop = loop, const bool _save = false) -> bool;
+    auto run(const size_t _loop = loop, const arguments_mode _mode = EXCEPTION) -> bool;
     const auto& get_commands() const { return _commands; }
     const auto& get_arguments() const { return _arguments; }
     const auto& get_exception() const { return _exception; }
 protected:
-    auto _M_save_commands_and_arguments(const std::string& _k) -> void;
+    auto _M_save_method_arguments(const std::string& _k) -> void;
+    auto _M_save_callback_arguments(const size_t _i) -> void;
 protected:
     std::unordered_map<std::string, std::shared_ptr<virtual_callable>> _callables;
     std::vector<std::shared_ptr<virtual_callable>> _callbacks;
@@ -345,13 +354,19 @@ public:
 
 
 
-template <typename _Tp> auto random_caller_impl<_Tp>::_M_save_commands_and_arguments(const std::string& _k) -> void {
+template <typename _Tp> auto random_caller_impl<_Tp>::_M_save_method_arguments(const std::string& _k) -> void {
     if (_callables.contains(_k)) {
         _commands.push_back(_k);
         _arguments.push_back(_callables.at(_k)->arguments());
     }
 };
-template <typename _Tp> auto random_caller_impl<_Tp>::run(const size_t _loop, const bool _save) -> bool {
+template <typename _Tp> auto random_caller_impl<_Tp>::_M_save_callback_arguments(const size_t _i) -> void {
+    if (_i < _callbacks.size()) {
+        _commands.push_back("callbacks[" + std::to_string(_i) + "]");
+        _arguments.push_back(_callbacks.at(_i)->arguments());
+    }
+};
+template <typename _Tp> auto random_caller_impl<_Tp>::run(const size_t _loop, const arguments_mode _mode) -> bool {
     if (_distribution.empty()) { return true; }
     using _Iter = typename decltype(_distribution)::const_iterator;
     _vro.density<_Iter>(_distribution.cbegin(), _distribution.cend(), [](_Iter _i) -> double {
@@ -360,20 +375,30 @@ template <typename _Tp> auto random_caller_impl<_Tp>::run(const size_t _loop, co
     _commands.clear(); _arguments.clear();
     for (size_t _i = 0; _i != _loop; ++_i) {
         const std::string& _k = _distribution.at(_vro.rand()).second;
-        bool _have_saved = false;
+        bool _method_arguments_saved = false;
+        size_t _j = 0;
         try {
             if (_callables.contains(_k)) {
                 _callables.at(_k)->operator()();
             }
-            if (_save) {
-                _M_save_commands_and_arguments(_k); _have_saved = true;
+            if (_mode & arguments_mode::METHOD) {
+                _method_arguments_saved = true;
+                _M_save_method_arguments(_k);
             }
-            for (const auto& _callback : _callbacks) {
-                _callback->operator()();
+            for (; _j != _callbacks.size(); ++_j) {
+                _callbacks[_j]->operator()();
+                if (_mode & arguments_mode::CALLBACK) {
+                    _M_save_callback_arguments(_j);
+                }
             }
         }
         catch (const std::exception& _e) {
-            if (!_have_saved) _M_save_commands_and_arguments(_k);
+            if (!_method_arguments_saved) {
+                _M_save_method_arguments(_k);
+            }
+            if (_j != _callbacks.size()) {
+                _M_save_callback_arguments(_j);
+            }
             _exception = _e.what();
             return false;
         }
